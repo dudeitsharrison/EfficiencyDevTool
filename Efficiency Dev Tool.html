@@ -1,0 +1,3061 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Element Comparison Tool</title>
+    <link rel="stylesheet" href="style.module.css">
+    <style>
+        /* Root variables directly in the HTML */
+        :root {
+            --html-color: #ff6d4d;
+            --css-color: #4d9cff;
+            --js-color: #ffd700;
+            --py-color: #4da8ff;
+            --default-color: #999;
+        }
+        
+        /* Code Type Toggle Buttons */
+        .code-type-toggles {
+            margin-bottom: 15px;
+        }
+        
+        .toggle-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 8px;
+        }
+        
+        /* Language control group containers */
+        .lang-control-group {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-width: 140px;
+            max-width: 180px;
+            border-radius: 8px;
+            padding: 12px;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+        
+        .lang-control-group:has(.html-toggle) {
+            background-color: rgba(255, 109, 77, 0.1) !important;
+            border: 1px solid rgba(255, 109, 77, 0.2) !important;
+        }
+        
+        .lang-control-group:has(.css-toggle) {
+            background-color: rgba(77, 156, 255, 0.1) !important;
+            border: 1px solid rgba(77, 156, 255, 0.2) !important;
+        }
+        
+        .lang-control-group:has(.js-toggle) {
+            background-color: rgba(255, 215, 0, 0.1) !important;
+            border: 1px solid rgba(255, 215, 0, 0.2) !important;
+        }
+        
+        .lang-control-group:has(.py-toggle) {
+            background-color: rgba(77, 168, 255, 0.1) !important;
+            border: 1px solid rgba(77, 168, 255, 0.2) !important;
+        }
+        
+        /* Fix for toggle buttons */
+        .toggle-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            border: none;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 5px;
+        }
+        
+        .toggle-btn.active {
+            box-shadow: 0 0 0 3px #fff, 0 0 0 5px currentColor;
+        }
+        
+        .toggle-btn.inactive {
+            opacity: 0.5;
+        }
+        
+        .html-toggle {
+            background-color: var(--html-color) !important;
+            color: var(--html-color) !important;
+        }
+        
+        .css-toggle {
+            background-color: var(--css-color) !important;
+            color: var(--css-color) !important;
+        }
+        
+        .js-toggle {
+            background-color: var(--js-color) !important;
+            color: var(--js-color) !important;
+        }
+        
+        .py-toggle {
+            background-color: var(--py-color) !important;
+            color: var(--py-color) !important;
+        }
+        
+        .html-toggle span.toggle-icon,
+        .css-toggle span.toggle-icon,
+        .py-toggle span.toggle-icon {
+            color: white !important;
+        }
+        
+        .js-toggle span.toggle-icon {
+            color: black !important;
+        }
+        
+        .toggle-icon {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        /* Hide relevant sliders when code type is inactive */
+        .code-type-disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        
+        /* Custom styles for stats panel */
+        .stats-content.expanded {
+            max-height: 750px !important;
+            overflow-y: auto;
+        }
+        
+        .stats-content.partially-expanded {
+            max-height: 300px !important;
+            overflow-y: auto;
+        }
+        
+        .stats-content.collapsed {
+            max-height: 0px !important;
+            overflow: hidden;
+        }
+        
+        .file-stats-list.expanded {
+            max-height: none !important;
+            overflow-y: visible;
+        }
+        
+        /* Button visibility controls */
+        .stats-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .stats-header > div {
+            display: flex;
+            align-items: center;
+        }
+        
+        .stats-toggle, .stats-expand-toggle {
+            display: flex;
+            align-items: center;
+            margin-left: 5px;
+        }
+        
+        /* Stats panel transition effects */
+        .stats-content {
+            overflow: hidden;
+            transition: max-height 0.3s ease-in-out;
+        }
+        
+        .stats-content.expanded {
+            max-height: 750px !important;
+            overflow-y: auto;
+        }
+        
+        .stats-content.partially-expanded {
+            max-height: 300px !important;
+            overflow-y: auto;
+        }
+        
+        .stats-content.collapsed {
+            max-height: 0px !important;
+            overflow: hidden;
+        }
+        
+        .file-stats-list {
+            /* Inherit transition properties */
+            transition: max-height 0.3s ease-in-out;
+            overflow: hidden;
+            margin-top: 8px;
+            width: 100%;
+        }
+        
+        .file-stats-list.expanded {
+            max-height: none !important;
+            overflow-y: visible;
+        }
+        
+        .html-toggle span.toggle-icon,
+        .css-toggle span.toggle-icon,
+        .py-toggle span.toggle-icon {
+            color: white !important;
+        }
+        
+        .js-toggle span.toggle-icon {
+            color: black !important;
+        }
+        
+        .toggle-icon {
+            font-size: 16px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="controls">
+            <div class="control-group top-controls">
+                <button class="btn" onclick="exportToJson()">Export to JSON</button>
+                <input type="file" id="importJson" accept=".json" style="display: none;" onchange="importFromJson(event)">
+                <button class="btn" onclick="document.getElementById('importJson').click()">Import JSON</button>
+                <button class="btn" onclick="saveProject()" id="saveProjectBtn">Save Project</button>
+            </div>
+            
+            <!-- Info Panel -->
+            <div id="info-panel" class="info-panel">
+                <div class="info-panel-header">
+                    <h2>Efficiency Dev Tool - Information Guide</h2>
+                    <button class="close-info-btn" onclick="toggleInfoPanel()">×</button>
+                </div>
+                <div class="info-panel-content">
+                    <div class="info-section">
+                        <h3>About This Tool</h3>
+                        <p>The Efficiency Dev Tool helps identify code duplication and similar elements across your codebase, enabling you to reduce redundancy and improve maintainability.</p>
+                    </div>
+                    
+                    <div class="info-section">
+                        <h3>Supported File Types</h3>
+                        <ul class="file-type-list">
+                            <li><span class="file-tag html-tag">.html</span> HTML files (detects elements, scripts, styles)</li>
+                            <li><span class="file-tag css-tag">.css</span> CSS files (detects selectors, rules)</li>
+                            <li><span class="file-tag js-tag">.js</span> JavaScript files (detects functions, classes, methods)</li>
+                            <li><span class="file-tag py-tag">.py</span> Python files (detects functions, basic class support)</li>
+                            <li><span class="file-tag txt-tag">.txt</span> Text files (generic text comparison)</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="info-section">
+                        <h3>Main Features</h3>
+                        <ul>
+                            <li><strong>Code comparison</strong>: Identify similar code elements across multiple files</li>
+                            <li><strong>Similarity scoring</strong>: Measure how closely related code elements are</li>
+                            <li><strong>Mark as fixed</strong>: Track which duplications you've already addressed</li>
+                            <li><strong>Project management</strong>: Save and load analysis sessions with auto-detection of similar projects</li>
+                            <li><strong>Export/Import</strong>: Save your work for later or share with team members</li>
+                            <li><strong>Filtering</strong>: Focus on specific file types or text patterns</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="info-section">
+                        <h3>Video Demo</h3>
+                        <p>Watch a quick overview of the tool's features:</p>
+                        <div class="video-container">
+                            <iframe width="100%" height="280" src="https://www.youtube.com/embed/BbqqbWKkBTg?autoplay=1&mute=1" title="Efficiency Dev Tool Demo" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                        </div>
+                    </div>
+                    
+                    <div class="info-section">
+                        <h3>Interface Elements</h3>
+                        
+                        <div class="setting-item">
+                            <h4>Collapsible Panels <span class="setting-symbol">🔽</span></h4>
+                            <p>All panels can be collapsed or expanded using the buttons in the header:</p>
+                            <ul>
+                                <li><strong>Collapse/Expand</strong>: <span class="chevron-icon chevron-up"></span> / <span class="chevron-icon chevron-down"></span> Toggle panel visibility</li>
+                                <li><strong>Statistics Panel</strong>: Has additional options to partially expand or fully expand the content</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="setting-item">
+                            <h4>Sliders <span class="setting-symbol">⚙️</span></h4>
+                            <p>Adjust settings with interactive sliders:</p>
+                            <div style="background: #f5f5f5; padding: 8px; border-radius: 6px; margin-bottom: 10px;">
+                                <div class="slider-container" style="max-width: 250px; margin: 0 auto;">
+                                    <label>Example: Similarity Threshold: <span class="editable-value">20</span>%</label>
+                                    <input type="range" min="1" max="100" value="20" step="1" disabled>
+                                </div>
+                            </div>
+                            <p><small>* All numeric values are editable - click on a number to modify it directly</small></p>
+                        </div>
+                        
+                        <div class="setting-item">
+                            <h4>Project Management <span class="setting-symbol">📂</span></h4>
+                            <p>Projects can be saved and managed in the "Saved Projects" panel:</p>
+                            <div style="background: #f5f5f5; padding: 12px; border-radius: 6px; margin: 10px 0;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <div style="font-weight: bold;">Example Project</div>
+                                        <div style="font-size: 0.9em; color: #666;">3 files, 12 fixed comparisons</div>
+                                    </div>
+                                    <div style="display: flex; gap: 5px;">
+                                        <button style="padding: 3px 8px; border: none; border-radius: 3px; background: rgba(255, 152, 0, 0.1); color: #ef6c00; font-size: 12px;">Rename</button>
+                                        <button style="padding: 3px 8px; border: none; border-radius: 3px; background: rgba(76, 175, 80, 0.15); color: #4caf50; font-size: 12px; padding-left: 28px; position: relative;">
+                                            <span style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-size: 14px;">⚡</span>
+                                            Quick Load
+                                        </button>
+                                        <button style="padding: 3px 8px; border: none; border-radius: 3px; background: rgba(211, 47, 47, 0.1); color: #d32f2f; font-size: 12px;">Delete</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <ul>
+                                <li><strong>Save Project</strong>: Store your current analysis for later use</li>
+                                <li><strong>Quick Load</strong>: Instantly load a saved project</li>
+                                <li><strong>Rename</strong>: Change the project name</li>
+                                <li><strong>Delete</strong>: Remove the project</li>
+                                <li><strong>Project Similarity</strong>: Sets the threshold for auto-detecting similar projects</li>
+                                <li><strong>Auto-load Similar Projects</strong>: Automatically load similar projects without confirmation</li>
+                                <li><strong>Auto-create New Project</strong>: Skip similarity comparison and create a new project</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="setting-item">
+                            <h4>Result Filters <span class="setting-symbol">🔍</span></h4>
+                            <p>Filters help you focus on specific types of comparisons:</p>
+                            <div style="display: flex; flex-wrap: wrap; gap: 5px; margin: 10px 0;">
+                                <button style="padding: 4px 10px; border: none; border-radius: 4px; background: #777; color: white; font-size: 12px;">All</button>
+                                <button style="padding: 4px 10px; border: none; border-radius: 4px; background: #ff6d4d; color: white; font-size: 12px;">HTML</button>
+                                <button style="padding: 4px 10px; border: none; border-radius: 4px; background: #4d9cff; color: white; font-size: 12px;">CSS</button>
+                                <button style="padding: 4px 10px; border: none; border-radius: 4px; background: #ffd700; color: #333; font-size: 12px;">JS</button>
+                                <button style="padding: 4px 10px; border: none; border-radius: 4px; background: #4da8ff; color: white; font-size: 12px;">PY</button>
+                                <button style="padding: 4px 10px; border: none; border-radius: 4px; background: #8e44ad; color: white; font-size: 12px;">Cross-File</button>
+                                <button style="padding: 4px 10px; border: none; border-radius: 4px; background: #16a085; color: white; font-size: 12px;">Same-File</button>
+                            </div>
+                            <p>You can also filter by text, file names, or specific code patterns using the search feature.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="info-section">
+                        <h3>Settings & Controls</h3>
+                        <div class="settings-info">
+                            <div class="setting-item">
+                                <h4>Minimum Code Length <span class="setting-symbol">📏</span></h4>
+                                <p>Sets the minimum character length for code elements to be included in analysis.</p>
+                                <div class="setting-tip">
+                                    <span class="tip-symbol">💡</span> <strong>Tip:</strong> 
+                                    <ul>
+                                        <li>Lower values (5-15): Catch small duplications, more false positives</li>
+                                        <li>Higher values (20-50): Focus on larger code blocks, fewer results</li>
+                                        <li>Recommended: 10-20 characters for balanced results</li>
+                                        <li>You can set different lengths for each language type (HTML, CSS, JS, Python)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <div class="setting-item">
+                                <h4>Code Similarity Threshold <span class="setting-symbol">🔍</span></h4>
+                                <p>Sets the minimum similarity percentage required to consider two code elements as related.</p>
+                                <div class="setting-tip">
+                                    <span class="tip-symbol">💡</span> <strong>Tip:</strong> 
+                                    <ul>
+                                        <li>Lower values (10-30%): More results, including loosely related code</li>
+                                        <li>Higher values (70-90%): Only very similar or near-identical code</li>
+                                        <li>Recommended: 20-40% for most codebases</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <div class="setting-item">
+                                <h4>Similarity Priority <span class="setting-symbol">⚖️</span></h4>
+                                <p>Determines how similarity is calculated between code elements.</p>
+                                <ul>
+                                    <li><strong>Token Priority</strong>: Emphasizes similar words/tokens regardless of their order</li>
+                                    <li><strong>Balanced</strong>: Equal consideration of token similarity and length/structure</li>
+                                    <li><strong>Length Priority</strong>: Emphasizes structural similarity and code length</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="info-section">
+                        <h3>Comparison Results</h3>
+                        <p>Comparison cards show similar code elements with options to view details, mark as fixed, and take action.</p>
+                        <div class="comparison-example-image">
+                            <img src="comparisonexample.png" alt="Example of a code comparison" style="max-width: 100%; border-radius: 6px; margin: 10px 0; box-shadow: 0 3px 6px rgba(0,0,0,0.16);">
+                            <p class="image-caption" style="font-size: 0.9em; color: #666; text-align: center; margin-top: 5px;">Example of a code comparison showing similar elements with highlighted similarities</p>
+                        </div>
+                        <div style="background: #f5f5f5; padding: 12px; border-radius: 6px; margin: 10px 0; border-left: 3px solid #4a90e2;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <span style="font-weight: bold;">Function: calculateSimilarity</span>
+                                <span style="background: #44a7ee; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8em;">75%</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 0.9em;">
+                                <span>scripts.js:252</span>
+                                <div>
+                                    <span style="padding: 2px 8px; background: rgba(74, 144, 226, 0.2); border-radius: 4px; margin-right: 5px; cursor: pointer;">View</span>
+                                    <span style="padding: 2px 8px; background: rgba(78, 179, 74, 0.2); border-radius: 4px; cursor: pointer;">Fix</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="results-legend">
+                            <div class="legend-item">
+                                <span class="similarity-indicator high">80-100%</span>
+                                <p>High similarity: Near duplicates, strong candidates for refactoring</p>
+                            </div>
+                            <div class="legend-item">
+                                <span class="similarity-indicator medium">40-79%</span>
+                                <p>Medium similarity: Partial matches, potential for shared functionality</p>
+                            </div>
+                            <div class="legend-item">
+                                <span class="similarity-indicator low">20-39%</span>
+                                <p>Low similarity: Some common elements, may be coincidental</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="info-section">
+                        <h3>Performance Tips <span class="setting-symbol">⚡</span></h3>
+                        <ul>
+                            <li>For large codebases (1000+ files), increase the minimum code length to improve performance</li>
+                            <li>Use file type filters to focus analysis on specific file types</li>
+                            <li>Save your analysis sessions regularly to avoid losing work</li>
+                            <li>Mark comparisons as "fixed" to track progress and reduce visual clutter</li>
+                            <li>Export your results for sharing or offline review</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="info-section">
+                        <h3>Workflow Recommendations</h3>
+                        <ol>
+                            <li>Start with higher thresholds to identify obvious duplications</li>
+                            <li>Mark resolved items as "fixed" to track progress</li>
+                            <li>Gradually lower thresholds to find more subtle similarities</li>
+                            <li>Use the "Quick Load" button for frequent analysis of the same files</li>
+                            <li>Save projects with meaningful names for easy reference</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Support Panel -->
+            <div id="support-panel" class="support-panel">
+                <div class="support-panel-header">
+                    <h2>Support This Project</h2>
+                    <button class="close-support-btn" onclick="toggleSupportPanel()">×</button>
+                </div>
+                <div class="support-panel-content">
+                    <div class="support-section">
+                        <h3>Buy Me a Coffee</h3>
+                        <p>If you find this tool helpful in your development workflow, please consider supporting its continued development.</p>
+                        <div class="bmc-container">
+                            <a href="https://buymeacoffee.com/L5ff3Ti0zc" target="_blank" class="bmc-link">
+                                <img src="bmc_qr.png" alt="Buy Me A Coffee QR Code" class="bmc-qr">
+                            </a>
+                            <p class="bmc-text">Scan the QR code or visit:</p>
+                            <a href="https://buymeacoffee.com/L5ff3Ti0zc" target="_blank" class="bmc-button">
+                                buymeacoffee.com/L5ff3Ti0zc
+                            </a>
+                        </div>
+                        <p class="support-thanks">Thank you for your support!</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="utility-buttons">
+                <!-- Info Button -->
+                <button id="infoButton" class="btn info-btn" onclick="toggleInfoPanel()">
+                    <span class="info-icon">i</span>
+                </button>
+                
+                <!-- Support Button - BMC Logo -->
+                <button id="supportButton" class="btn support-btn" onclick="toggleSupportPanel()">
+                    <svg width="20" height="20" viewBox="0 0 884 1279" fill="none" xmlns="http://www.w3.org/2000/svg" class="support-icon">
+                        <path d="M472.623 590.836C426.682 610.503 374.546 632.802 306.976 632.802C278.71 632.746 250.58 628.868 223.353 621.274L270.086 1101.08C271.74 1121.13 280.876 1139.83 295.679 1153.46C310.482 1167.09 329.87 1174.65 349.992 1174.65C349.992 1174.65 416.254 1178.09 438.365 1178.09C462.161 1178.09 533.516 1174.65 533.516 1174.65C553.636 1174.65 573.019 1167.08 587.819 1153.45C602.619 1139.82 611.752 1121.13 613.406 1101.08L663.459 570.876C641.091 563.237 618.516 558.161 593.068 558.161C549.054 558.144 513.591 573.303 472.623 590.836Z" fill="#FFDD00"></path>
+                        <path d="M879.567 341.849L872.53 306.352C866.215 274.503 851.882 244.409 819.19 232.898C808.711 229.215 796.821 227.633 788.786 220.01C780.751 212.388 778.376 200.55 776.518 189.572C773.076 169.423 769.842 149.257 766.314 129.143C763.269 111.85 760.86 92.4243 752.928 76.56C742.604 55.2584 721.182 42.8009 699.88 34.559C688.965 30.4844 677.826 27.0375 666.517 24.2352C613.297 10.1947 557.342 5.03277 502.591 2.09047C436.875 -1.53577 370.983 -0.443234 305.422 5.35968C256.625 9.79894 205.229 15.1674 158.858 32.0469C141.91 38.224 124.445 45.6399 111.558 58.7341C95.7448 74.8221 90.5829 99.7026 102.128 119.765C110.336 134.012 124.239 144.078 138.985 150.737C158.192 159.317 178.251 165.846 198.829 170.215C256.126 182.879 315.471 187.851 374.007 189.968C438.887 192.586 503.87 190.464 568.44 183.618C584.408 181.863 600.347 179.758 616.257 177.304C634.995 174.43 647.022 149.928 641.499 132.859C634.891 112.453 617.134 104.538 597.055 107.618C594.095 108.082 591.153 108.512 588.193 108.942L586.06 109.252C579.257 110.113 572.455 110.915 565.653 111.661C551.601 113.175 537.515 114.414 523.394 115.378C491.768 117.58 460.057 118.595 428.363 118.647C397.219 118.647 366.058 117.769 334.983 115.722C320.805 114.793 306.661 113.611 292.552 112.177C286.134 111.506 279.733 110.801 273.333 110.009L267.241 109.235L265.917 109.046L259.602 108.134C246.697 106.189 233.792 103.953 221.025 101.251C219.737 100.965 218.584 100.249 217.758 99.2193C216.932 98.1901 216.482 96.9099 216.482 95.5903C216.482 94.2706 216.932 92.9904 217.758 91.9612C218.584 90.9319 219.737 90.2152 221.025 89.9293H221.266C232.33 87.5721 243.479 85.5589 254.663 83.8038C258.392 83.2188 262.131 82.6453 265.882 82.0832H265.985C272.988 81.6186 280.026 80.3625 286.994 79.5366C347.624 73.2301 408.614 71.0801 469.538 73.1014C499.115 73.9618 528.676 75.6996 558.116 78.6935C564.448 79.3474 570.746 80.0357 577.043 80.8099C579.452 81.1025 581.878 81.4465 584.305 81.7391L589.191 82.4445C603.438 84.5667 617.61 87.1419 631.708 90.1703C652.597 94.7128 679.422 96.1925 688.713 119.077C691.673 126.338 693.015 134.408 694.649 142.03L696.732 151.752C696.786 151.926 696.826 152.105 696.852 152.285C701.773 175.227 706.7 198.169 711.632 221.111C711.994 222.806 712.002 224.557 711.657 226.255C711.312 227.954 710.621 229.562 709.626 230.982C708.632 232.401 707.355 233.6 705.877 234.504C704.398 235.408 702.75 235.997 701.033 236.236H700.895L697.884 236.649L694.908 237.044C685.478 238.272 676.038 239.419 666.586 240.486C647.968 242.608 629.322 244.443 610.648 245.992C573.539 249.077 536.356 251.102 499.098 252.066C480.114 252.57 461.135 252.806 442.162 252.771C366.643 252.712 291.189 248.322 216.173 239.625C208.051 238.662 199.93 237.629 191.808 236.58C198.106 237.389 187.231 235.96 185.029 235.651C179.867 234.928 174.705 234.177 169.543 233.397C152.216 230.798 134.993 227.598 117.7 224.793C96.7944 221.352 76.8005 223.073 57.8906 233.397C42.3685 241.891 29.8055 254.916 21.8776 270.735C13.7217 287.597 11.2956 305.956 7.64786 324.075C4.00009 342.193 -1.67805 361.688 0.472751 380.288C5.10128 420.431 33.165 453.054 73.5313 460.35C111.506 467.232 149.687 472.807 187.971 477.556C338.361 495.975 490.294 498.178 641.155 484.129C653.44 482.982 665.708 481.732 677.959 480.378C681.786 479.958 685.658 480.398 689.292 481.668C692.926 482.938 696.23 485.005 698.962 487.717C701.694 490.429 703.784 493.718 705.08 497.342C706.377 500.967 706.846 504.836 706.453 508.665L702.633 545.797C694.936 620.828 687.239 695.854 679.542 770.874C671.513 849.657 663.431 928.434 655.298 1007.2C653.004 1029.39 650.71 1051.57 648.416 1073.74C646.213 1095.58 645.904 1118.1 641.757 1139.68C635.218 1173.61 612.248 1194.45 578.73 1202.07C548.022 1209.06 516.652 1212.73 485.161 1213.01C450.249 1213.2 415.355 1211.65 380.443 1211.84C343.173 1212.05 297.525 1208.61 268.756 1180.87C243.479 1156.51 239.986 1118.36 236.545 1085.37C231.957 1041.7 227.409 998.039 222.9 954.381L197.607 711.615L181.244 554.538C180.968 551.94 180.693 549.376 180.435 546.76C178.473 528.023 165.207 509.681 144.301 510.627C126.407 511.418 106.069 526.629 108.168 546.76L120.298 663.214L145.385 904.104C152.532 972.528 159.661 1040.96 166.773 1109.41C168.15 1122.52 169.44 1135.67 170.885 1148.78C178.749 1220.43 233.465 1259.04 301.224 1269.91C340.799 1276.28 381.337 1277.59 421.497 1278.24C472.979 1279.07 524.977 1281.05 575.615 1271.72C650.653 1257.95 706.952 1207.85 714.987 1130.13C717.282 1107.69 719.576 1085.25 721.87 1062.8C729.498 988.559 737.115 914.313 744.72 840.061L769.601 597.451L781.009 486.263C781.577 480.749 783.905 475.565 787.649 471.478C791.392 467.391 796.352 464.617 801.794 463.567C823.25 459.386 843.761 452.245 859.023 435.916C883.318 409.918 888.153 376.021 879.567 341.849Z" fill="#0D0C22"></path>
+                    </svg>
+                </button>
+                
+                <!-- Support Button Options removed -->
+            </div>
+            
+            <div class="projects-panel">
+                <div class="projects-header">
+                    <span class="projects-title">Saved Projects</span>
+                    <button class="projects-toggle" onclick="toggleProjects()">Hide Projects <span class="chevron-icon chevron-up"></span></button>
+                </div>
+                <div class="projects-content expanded" id="projects-content">
+                    <div class="projects-list" id="projects-list">
+                        <!-- Project list will be inserted here -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- REORGANIZED CONTROL PANELS -->
+            <!-- Analysis Settings Panel -->
+            <div class="settings-panel analysis-settings">
+                <div class="panel-header">
+                    <span class="panel-title">Initial Analysis Settings</span>
+                    <button class="panel-toggle" onclick="toggleAnalysisSettings()">
+                        <span id="analysis-toggle-text">Collapse</span> <span class="chevron-icon chevron-up" id="analysis-chevron"></span>
+                    </button>
+                </div>
+                <div class="panel-content expanded" id="analysis-settings-content">
+                    <!-- File Selection & Similarity Threshold -->
+                    <div class="settings-row file-selection-row">
+                        <div class="file-input-container">
+                            <input type="file" id="fileInput" multiple accept=".html,.css,.js,.py,.txt">
+                        </div>
+                        <div class="slider-container similarity-slider">
+                            <label for="codeSimilarityThreshold">Similarity Threshold: <span id="codeSimilarityValue" class="editable-value">20</span>%</label>
+                            <input type="range" id="codeSimilarityThreshold" min="1" max="100" value="20" step="1">
+                        </div>
+                        <button class="btn analyze-btn" onclick="analyzeFiles()">Analyze Files</button>
+                    </div>
+                    
+                    <!-- Code Types and Minimum Lengths -->
+                    <div class="settings-row code-types-row">
+                        <label class="section-label">Include Code Types & Minimum Lengths:</label>
+                        
+                        <div class="code-type-controls-wrapper">
+                            <div class="code-type-controls">
+                                <!-- HTML -->
+                                <div class="lang-control-group">
+                                    <button class="toggle-btn html-toggle active" id="includeHTML" onclick="toggleCodeType('html')">
+                                        <span class="toggle-icon">HTML</span>
+                                    </button>
+                                    <div class="slider-container code-type-sliders html-slider">
+                                        <span class="min-length-label">Min Length: <span id="minLengthHTMLValue" class="editable-value">10</span></span>
+                                        <input type="range" id="minLengthHTML" min="5" max="50" value="10" step="1">
+                                    </div>
+                                </div>
+                                
+                                <!-- CSS -->
+                                <div class="lang-control-group">
+                                    <button class="toggle-btn css-toggle active" id="includeCSS" onclick="toggleCodeType('css')">
+                                        <span class="toggle-icon">CSS</span>
+                                    </button>
+                                    <div class="slider-container code-type-sliders css-slider">
+                                        <span class="min-length-label">Min Length: <span id="minLengthCSSValue" class="editable-value">5</span></span>
+                                        <input type="range" id="minLengthCSS" min="5" max="50" value="5" step="1">
+                                    </div>
+                                </div>
+                                
+                                <!-- JS -->
+                                <div class="lang-control-group">
+                                    <button class="toggle-btn js-toggle active" id="includeJS" onclick="toggleCodeType('js')">
+                                        <span class="toggle-icon">JS</span>
+                                    </button>
+                                    <div class="slider-container code-type-sliders js-slider">
+                                        <span class="min-length-label">Min Length: <span id="minLengthJSValue" class="editable-value">10</span></span>
+                                        <input type="range" id="minLengthJS" min="5" max="50" value="10" step="1">
+                                    </div>
+                                </div>
+                                
+                                <!-- Python -->
+                                <div class="lang-control-group" style="background-color: rgba(77, 168, 255, 0.1); border: 1px solid rgba(77, 168, 255, 0.2);">
+                                    <button class="toggle-btn py-toggle active" id="includePython" onclick="toggleCodeType('py')">
+                                        <span class="toggle-icon">PY</span>
+                                    </button>
+                                    <div class="slider-container code-type-sliders py-slider">
+                                        <span class="min-length-label">Min Length: <span id="minLengthPythonValue" class="editable-value">5</span></span>
+                                        <input type="range" id="minLengthPython" min="5" max="50" value="5" step="1" style="accent-color: #4da8ff;">
+                                    </div>
+                                </div>
+                                
+                                <!-- Master Min Length -->
+                                <div class="master-length-container">
+                                    <div class="slider-container">
+                                        <label for="minLength">Master Length: <span id="minLengthValue" class="editable-value">10</span></label>
+                                        <span class="sync-indicator">(syncs all)</span>
+                                        <input type="range" id="minLength" min="5" max="50" value="10" step="1">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Similarity Priority Mode -->
+                    <div class="settings-row similarity-priority-row">
+                        <div class="similarity-mode-container">
+                            <label>Similarity Priority:</label>
+                            <div class="similarity-mode-buttons">
+                                <button class="btn similarity-mode-btn" data-mode="token" onclick="updateSimilarityPriorityMode('token')">Token Priority</button>
+                                <button class="btn similarity-mode-btn" data-mode="balanced" onclick="updateSimilarityPriorityMode('balanced')">Balanced</button>
+                                <button class="btn similarity-mode-btn active" data-mode="length" onclick="updateSimilarityPriorityMode('length')">Length Priority</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- File Analysis Statistics Panel (Moved below the Analysis Settings) -->
+            <div class="stats-panel">
+                <div class="stats-header">
+                    <span class="stats-title">File Analysis Statistics</span>
+                    <div>
+                        <button class="stats-toggle" onclick="toggleStatsPartial()">Collapse <span class="chevron-icon chevron-up"></span></button>
+                        <button class="stats-expand-toggle" onclick="toggleStatsFullExpand()">Expand <span class="chevron-icon chevron-down"></span></button>
+                    </div>
+                </div>
+                <div class="stats-content partially-expanded" id="stats-content" style="max-height: 300px;">
+                    <div class="stats-grid">
+                        <div class="stats-item">
+                            <span class="stats-label">Total Files:</span>
+                            <span class="stats-value" id="stats-total-files">0</span>
+                        </div>
+                        <div class="stats-item">
+                            <span class="stats-label">Files With Elements:</span>
+                            <span class="stats-value" id="stats-files-with-elements">0</span>
+                        </div>
+                        <div class="stats-item">
+                            <span class="stats-label">Total Elements:</span>
+                            <span class="stats-value" id="stats-total-elements">0</span>
+                        </div>
+                        <div class="stats-item">
+                            <span class="stats-label">Total Comparisons:</span>
+                            <span class="stats-value" id="stats-total-comparisons">0</span>
+                        </div>
+                    </div>
+                    <div class="file-stats-list" id="file-stats-list">
+                        <!-- File stats will be inserted here -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Results Filter Panel -->
+            <div class="settings-panel filter-settings">
+                <div class="panel-header">
+                    <span class="panel-title">Results Filter Settings</span>
+                    <button class="panel-toggle" onclick="toggleFilterSettings()">
+                        <span id="filter-toggle-text">Collapse</span> <span class="chevron-icon chevron-up" id="filter-chevron"></span>
+                    </button>
+                </div>
+                <div class="panel-content expanded" id="filter-settings-content">
+                    <!-- Type and Location Filters -->
+                    <div class="settings-row filter-options-row">
+                        <div class="compact-filters">
+                            <span class="filter-label">Filter Results:</span>
+                            <div class="filter-grid">
+                                <button class="btn filter-btn all-btn" onclick="displayComparisons('all')">All</button>
+                                <button class="btn filter-btn html-btn" onclick="displayComparisons('.html')">HTML</button>
+                                <button class="btn filter-btn css-btn" onclick="displayComparisons('.css')">CSS</button>
+                                <button class="btn filter-btn js-btn" onclick="displayComparisons('.js')">JS</button>
+                                <button class="btn filter-btn py-btn" onclick="displayComparisons('.py')">PY</button>
+                                <button class="btn filter-btn cross-file-btn" onclick="displayComparisons('cross-file')">Cross-File</button>
+                                <button class="btn filter-btn same-file-btn" onclick="displayComparisons('same-file')">Same-File</button>
+                                <button class="btn filter-btn clear-btn" onclick="clearSearchFilters()">Clear All</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Text Search Filters -->
+                    <div class="settings-row search-filters-row">
+                        <div class="search-box">
+                            <div class="search-box-header">
+                                <span class="search-box-title">Include Text:</span>
+                            </div>
+                            <div class="search-input">
+                                <input type="text" id="include-search" placeholder="Type to filter, Enter to add">
+                                <button onclick="addIncludeFilter()">Add</button>
+                            </div>
+                            <div class="search-filters" id="include-filters"></div>
+                        </div>
+                        
+                        <div class="search-box">
+                            <div class="search-box-header">
+                                <span class="search-box-title">Exclude Text:</span>
+                            </div>
+                            <div class="search-input">
+                                <input type="text" id="exclude-search" placeholder="Type to filter, Enter to add">
+                                <button onclick="addExcludeFilter()">Add</button>
+                            </div>
+                            <div class="search-filters" id="exclude-filters"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="progress-container">
+                <div id="progress-bar"></div>
+            </div>
+            <div id="progress-text"></div>
+
+            <!-- Version History Panel, initially hidden -->
+            <div class="history-panel" id="history-panel" style="display:none;">
+                <div class="history-header">
+                    <span class="history-title">Analysis Changes</span>
+                </div>
+                <div class="history-stats">
+                    <div class="history-stat history-new">
+                        <span id="history-new-count">0</span> New Comparisons
+                    </div>
+                    <div class="history-stat history-changed">
+                        <span id="history-changed-count">0</span> Changed Comparisons
+                    </div>
+                    <div class="history-stat history-removed">
+                        <span id="history-removed-count">0</span> Removed Comparisons
+                    </div>
+                </div>
+                <div id="history-details">
+                    <!-- History details will be shown here -->
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn" onclick="refreshAllStats()">Refresh Stats</button>
+                <button class="btn" onclick="showAllComparisons()">Show All Comparisons</button>
+                <button class="btn secondary" onclick="openFixedComparisonsManager()">Manage Fixed Comparisons</button>
+                <button class="btn secondary" onclick="openSelectorsManager()">Manage All Selectors & Functions</button>
+            </div>
+        </div>
+        <div id="comparisonGrid" class="comparison-grid"></div>
+        <div id="all-comparisons">
+            <h3>All Comparisons</h3>
+            <textarea id="all-comparisons-text" readonly></textarea>
+            <button class="btn" onclick="copyAllComparisons()">Copy All</button>
+        </div>
+    </div>
+
+    <div id="modal">
+        <div class="modal-content">
+            <button class="btn" onclick="closeModal()">Close</button>
+            <button class="btn" onclick="copyComparison()" id="copyBtn">Copy Comparison</button>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+    <div id="flag-details-popup"></div>
+
+    <!-- Fixed Comparisons Manager Popup -->
+    <div id="fixed-comparisons-manager">
+        <h2>Fixed Comparisons Manager</h2>
+        <input type="text" id="filter-fixed-comparisons" placeholder="Filter comparisons...">
+        <div id="fixed-comparisons-count">Showing 0 fixed comparisons</div>
+        <div id="fixed-comparisons-list"></div>
+        <div id="fixed-manager-actions">
+            <div>
+                <button class="btn" id="select-all-fixed">Select All</button>
+                <button class="btn" id="unselect-all-fixed">Unselect All</button>
+            </div>
+            <button class="btn danger" id="delete-selected-fixed">Delete Selected</button>
+            <button class="btn secondary" onclick="closeFixedComparisonsManager()">Close</button>
+        </div>
+    </div>
+    
+    <!-- Selectors Manager Popup -->
+    <div id="selectors-manager">
+        <h2>Selectors & Functions Manager</h2>
+        <input type="text" id="filter-selectors" placeholder="Filter selectors and functions...">
+        <div id="selectors-count">Showing 0 items</div>
+        <div id="selectors-list"></div>
+        <div id="selectors-manager-actions">
+            <button class="btn secondary" onclick="closeSelectorsManager()">Close</button>
+        </div>
+    </div>
+
+    <div id="modalOverlay"></div>
+    
+    <div id="toast-container" class="toast-container"></div>
+
+   
+    <!-- Worker Script - Hidden but accessible for the web worker -->
+    <script id="worker-script" type="javascript/worker">
+    self.onmessage = function(e) {
+    const { 
+        files, 
+        contents, 
+        codeSimilarityThreshold, 
+        minLength, 
+        minLengthCSS, 
+        minLengthJS, 
+        minLengthHTML, 
+        minLengthPython,
+        similarityPriorityMode,
+        includeHTML,
+        includeCSS,
+        includeJS,
+        includePython
+    } = e.data;
+    const batchSize = 5;
+    let filesData = [];
+    let fileStats = []; // Initialize fileStats array
+    
+    try {
+        self.postMessage({
+            type: 'progress',
+            data: { progress: 5, message: 'Starting analysis...' }
+        });
+        
+        // Improved helper function to get accurate line number from position
+        function getLineNumberFromPosition(content, position) {
+            if (position < 0 || position >= content.length) {
+                return 1; // Default to line 1 for invalid positions
+            }
+            // Count newlines strictly *before* the character at the given position.
+            // The number of preceding newlines + 1 is the 1-based line number.
+            const contentUpToPosition = content.substring(0, position);
+            const lines = contentUpToPosition.split('\n');
+            return lines.length;
+        }
+        
+        
+        // Extract code elements from file content
+        function extractCodeElements(content, fileExtension, fileName) {
+            // Determine the language based on file extension
+            let language = 'text';  // Default
+            if (fileExtension === '.css') {
+                language = 'css';
+            } else if (fileExtension === '.js') {
+                language = 'javascript';
+            } else if (fileExtension === '.html' || fileExtension === '.htm' || fileExtension === '.xml') {
+                language = 'html';
+            } else if (fileExtension === '.py') {
+                language = 'python';
+            }
+            
+            // Extract elements based on file type
+            let elements = [];
+            if (language === 'css') {
+                elements = extractCSSSelectors(content, fileName);
+            } else if (language === 'javascript') {
+                elements = extractJSFunctions(content, fileName);
+            } else if (language === 'html') {
+                elements = extractHTMLElements(content, fileName);
+            } else if (language === 'python') {
+                elements = extractPythonFunctions(content, fileName);
+            } else {
+                // Generic text extraction for unknown file types
+                elements = [{
+                    name: fileName,
+                    body: content,
+                    type: 'text',
+                    language: language
+                }];
+            }
+            
+            return elements;
+        }
+
+        // Extract CSS selectors from content
+        function extractCSSSelectors(content, fileName) {
+            try {
+                const elements = [];
+                // Use a Set to track processed START INDICES of matches
+                const processedMatchIndices = new Set();
+
+                // Regex to find CSS comments (block comments only)
+                const commentRegex = /(\/\*[\s\S]*?\*\/)/g;
+
+                // Build indexMap for CSS content
+                const indexMap = new Map();
+                let strippedIndex = 0;
+                let originalIndex = 0;
+                const commentRanges = [];
+                let commentMatch;
+                while ((commentMatch = commentRegex.exec(content)) !== null) {
+                    commentRanges.push({ start: commentMatch.index, end: commentMatch.index + commentMatch[0].length });
+                }
+                commentRanges.sort((a, b) => a.start - b.start);
+
+                let currentCommentIndex = 0;
+                while (originalIndex < content.length) {
+                    let inComment = false;
+                    if (currentCommentIndex < commentRanges.length && originalIndex >= commentRanges[currentCommentIndex].start) {
+                        if (originalIndex < commentRanges[currentCommentIndex].end) {
+                            inComment = true;
+                        } else {
+                            currentCommentIndex++;
+                            if (currentCommentIndex < commentRanges.length && originalIndex >= commentRanges[currentCommentIndex].start) {
+                                inComment = true;
+                            }
+                        }
+                    }
+                    if (!inComment) {
+                        indexMap.set(strippedIndex, originalIndex);
+                        strippedIndex++;
+                    }
+                    originalIndex++;
+                }
+                indexMap.set(strippedIndex, originalIndex);
+
+                function mapIndexToOriginal(matchIndex) {
+                    return indexMap.get(matchIndex) ?? matchIndex;
+                }
+
+                // Create the comment-stripped content AFTER building the map
+                const contentWithoutComments = content.replace(commentRegex, '');
+
+                // Match CSS rules
+                const ruleRegex = /([^{}]+)\{([^{}]*)\}/g;
+                let match;
+
+                while ((match = ruleRegex.exec(contentWithoutComments)) !== null) {
+                    const fullSelectorText = match[1]; // Selector text as matched, including potential leading whitespace
+                    const body = match[2].trim();
+                    const matchIndex = match.index; // Start index of the entire rule match in stripped content
+                    const selector = fullSelectorText.trim(); // Trimmed selector name
+
+                    if (selector && body && !selector.startsWith('@') && selector !== '') {
+                        // Calculate the offset of the trimmed selector within the matched selector text
+                        const selectorStartOffset = fullSelectorText.indexOf(selector);
+                        // Adjust the matchIndex to point to the start of the actual selector text (not whitespace)
+                        const selectorStartIndexInStripped = matchIndex + selectorStartOffset;
+
+                        // Use the adjusted index for processing checks and mapping
+                        if (processedMatchIndices.has(selectorStartIndexInStripped)) {
+                            continue;
+                        }
+                        processedMatchIndices.add(selectorStartIndexInStripped);
+
+                        // Map the *adjusted* index back to the original content's index
+                        const originalPosition = mapIndexToOriginal(selectorStartIndexInStripped);
+                        
+                        // Estimate end position (based on the full rule match in stripped content)
+                        const strippedRuleEndIndex = matchIndex + match[0].length;
+                        const estimatedOriginalEnd = mapIndexToOriginal(strippedRuleEndIndex);
+
+                        // Get accurate line number from the original content using the accurate start position
+                        const lineNumber = getLineNumberFromPosition(content, originalPosition);
+
+                        elements.push({
+                            name: selector,
+                            body: selector + '{' + body + '}',
+                            type: 'css-selector',
+                            language: 'css',
+                            lineNumber: lineNumber,
+                            sourcePosition: {
+                                startIndex: originalPosition,
+                                endIndex: estimatedOriginalEnd
+                            },
+                            normalizedSelector: selector
+                        });
+                    }
+                }
+
+                return elements;
+            } catch (error) {
+                 self.postMessage({
+                    type: 'error',
+                    data: { message: 'Error extracting CSS selectors: ' + error.message + ' stack: ' + error.stack }
+                });
+                return [];
+            }
+        }
+
+        // Extract JavaScript functions from content
+        function extractJSFunctions(content, fileName) {
+            try {
+                const elements = [];
+                const processedMatchIndices = new Set();
+
+                // Regex to find both block and line comments
+                const commentRegex = /(\/\*[\s\S]*?\*\/)|(\/\/.*)/g;
+
+                // Build a map of indices from stripped content to original content
+                const indexMap = new Map();
+                let strippedIndex = 0;
+                let originalIndex = 0;
+                let lastMatchEnd = 0;
+                let commentMatch;
+
+                // Store comment ranges to skip over them during mapping
+                const commentRanges = [];
+                while ((commentMatch = commentRegex.exec(content)) !== null) {
+                    commentRanges.push({ start: commentMatch.index, end: commentMatch.index + commentMatch[0].length });
+                }
+                // Sort ranges to process them correctly
+                commentRanges.sort((a, b) => a.start - b.start);
+
+                let currentCommentIndex = 0;
+                while (originalIndex < content.length) {
+                    let inComment = false;
+                    if (currentCommentIndex < commentRanges.length && originalIndex >= commentRanges[currentCommentIndex].start) {
+                        if (originalIndex < commentRanges[currentCommentIndex].end) {
+                            inComment = true;
+                        } else {
+                            // Move to the next comment range if we passed the current one
+                            currentCommentIndex++;
+                            // Check if we immediately entered the next comment range
+                            if (currentCommentIndex < commentRanges.length && originalIndex >= commentRanges[currentCommentIndex].start) {
+                                inComment = true;
+                            }
+                        }
+                    }
+
+                    if (!inComment) {
+                        // Map the current strippedIndex to the originalIndex
+                        indexMap.set(strippedIndex, originalIndex);
+                        strippedIndex++;
+                    }
+                    originalIndex++;
+                }
+                // Add a final mapping for the end of the string
+                indexMap.set(strippedIndex, originalIndex);
+
+                // Use the indexMap to find the original position
+                function mapIndexToOriginal(matchIndex) {
+                    return indexMap.get(matchIndex) ?? matchIndex; // Fallback if map fails
+                }
+
+                // Create the comment-stripped content AFTER building the map
+                const contentWithoutComments = content.replace(commentRegex, '');
+
+                // Corrected regex for named functions
+                const namedFunctionRegex = /function\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\([^)]*\)\s*{[\s\S]*?}/g;
+                let namedMatch;
+
+                const controlFlowKeywords = new Set(['if', 'for', 'while', 'switch']);
+
+                while ((namedMatch = namedFunctionRegex.exec(contentWithoutComments)) !== null) {
+                    const name = namedMatch[1];
+                    const body = namedMatch[0].trim();
+                    const matchIndex = namedMatch.index; // Index in stripped content
+
+                    if (controlFlowKeywords.has(name)) {
+                        continue;
+                    }
+                    if (processedMatchIndices.has(matchIndex)) {
+                        continue;
+                    }
+                    processedMatchIndices.add(matchIndex);
+
+                    const originalPosition = mapIndexToOriginal(matchIndex);
+                    // Estimate end position in original content by mapping the stripped end index
+                    const strippedEndIndex = matchIndex + namedMatch[0].length;
+                    const estimatedOriginalEnd = mapIndexToOriginal(strippedEndIndex);
+
+                    const lineNumber = getLineNumberFromPosition(content, originalPosition);
+
+                    elements.push({
+                        name: name,
+                        body: body, // Use body from stripped content for comparison consistency
+                        type: 'function',
+                        language: 'javascript',
+                        lineNumber: lineNumber,
+                        fileName: fileName,
+                        sourcePosition: {
+                            startIndex: originalPosition,
+                            endIndex: estimatedOriginalEnd
+                        }
+                    });
+                }
+
+                // Corrected regex for arrow functions
+                const arrowFunctionRegex = /(?:const|let|var)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*(?:function|\([^)]*\)\s*=>)[\s\S]*?(?:}|;(?=\s*\n)|$)/g;
+                let arrowMatch;
+                arrowFunctionRegex.lastIndex = 0;
+
+                while ((arrowMatch = arrowFunctionRegex.exec(contentWithoutComments)) !== null) {
+                    const name = arrowMatch[1];
+                    const body = arrowMatch[0].trim();
+                    const matchIndex = arrowMatch.index; // Index in stripped content
+
+                    if (controlFlowKeywords.has(name)) {
+                        continue;
+                    }
+                    if (processedMatchIndices.has(matchIndex)) {
+                        continue;
+                    }
+                    processedMatchIndices.add(matchIndex);
+
+                    const originalPosition = mapIndexToOriginal(matchIndex);
+                    // Estimate end position in original content
+                    const strippedEndIndex = matchIndex + arrowMatch[0].length;
+                    const estimatedOriginalEnd = mapIndexToOriginal(strippedEndIndex);
+
+                    const lineNumber = getLineNumberFromPosition(content, originalPosition);
+
+                    elements.push({
+                        name: name,
+                        body: body, // Use body from stripped content
+                        type: 'function',
+                        language: 'javascript',
+                        lineNumber: lineNumber,
+                        fileName: fileName,
+                        sourcePosition: {
+                            startIndex: originalPosition,
+                            endIndex: estimatedOriginalEnd
+                        }
+                    });
+                }
+
+                return elements;
+            } catch (error) {
+                self.postMessage({
+                    type: 'error',
+                    data: { message: 'Error extracting JS functions: ' + error.message + ' stack: ' + error.stack }
+                });
+                return [];
+            }
+        }
+
+        // Extract Python functions and classes from content
+        function extractPythonFunctions(content, fileName) {
+            try {
+                const elements = [];
+                const processedMatchIndices = new Set();
+
+                // Regex to find Python comments (single and multi-line)
+                const commentRegex = /(#.*$)|('''[\s\S]*?''')|("""[\s\S]*?""")/gm;
+
+                // Build a map of indices from stripped content to original content
+                const indexMap = new Map();
+                let strippedIndex = 0;
+                let originalIndex = 0;
+                const commentRanges = [];
+                
+                // Find all comment ranges
+                let commentMatch;
+                while ((commentMatch = commentRegex.exec(content)) !== null) {
+                    commentRanges.push({ start: commentMatch.index, end: commentMatch.index + commentMatch[0].length });
+                }
+                // Sort ranges to process them correctly
+                commentRanges.sort((a, b) => a.start - b.start);
+
+                let currentCommentIndex = 0;
+                while (originalIndex < content.length) {
+                    let inComment = false;
+                    if (currentCommentIndex < commentRanges.length && originalIndex >= commentRanges[currentCommentIndex].start) {
+                        if (originalIndex < commentRanges[currentCommentIndex].end) {
+                            inComment = true;
+                        } else {
+                            // Move to the next comment range if we passed the current one
+                            currentCommentIndex++;
+                            // Check if we immediately entered the next comment range
+                            if (currentCommentIndex < commentRanges.length && originalIndex >= commentRanges[currentCommentIndex].start) {
+                                inComment = true;
+                            }
+                        }
+                    }
+
+                    if (!inComment) {
+                        // Map the current strippedIndex to the originalIndex
+                        indexMap.set(strippedIndex, originalIndex);
+                        strippedIndex++;
+                    }
+                    originalIndex++;
+                }
+                // Add a final mapping for the end of the string
+                indexMap.set(strippedIndex, originalIndex);
+
+                // Use the indexMap to find the original position
+                function mapIndexToOriginal(matchIndex) {
+                    return indexMap.get(matchIndex) ?? matchIndex; // Fallback if map fails
+                }
+
+                // Create the comment-stripped content AFTER building the map
+                const contentWithoutComments = content.replace(commentRegex, '');
+
+                // Regex for Python functions
+                const functionRegex = /def\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^)]*)\)(?:\s*->\s*[^:]+)?:/g;
+                let funcMatch;
+
+                while ((funcMatch = functionRegex.exec(contentWithoutComments)) !== null) {
+                    const name = funcMatch[1];
+                    const params = funcMatch[2].trim();
+                    const matchIndex = funcMatch.index;
+                    
+                    // Skip if already processed
+                    if (processedMatchIndices.has(matchIndex)) {
+                        continue;
+                    }
+                    processedMatchIndices.add(matchIndex);
+                    
+                    // Map back to original position
+                    const originalPosition = mapIndexToOriginal(matchIndex);
+                    
+                    // Find function body - in Python, functions end when indentation returns to original level
+                    // Since we're using a simple regex approach, we'll approximate the function body
+                    const strippedFunctionStart = matchIndex;
+                    const functionDefLine = contentWithoutComments.substring(
+                        strippedFunctionStart,
+                        contentWithoutComments.indexOf('\n', strippedFunctionStart) + 1
+                    );
+                    
+                    // Extract indentation of the first line after function definition
+                    const nextLineMatch = contentWithoutComments.substr(
+                        strippedFunctionStart + functionDefLine.length
+                    ).match(/^(\s*)[^\s]/);
+                    
+                    // If no line after function definition, use a minimum body
+                    if (!nextLineMatch) {
+                        // Map the end position
+                        const lineEnd = strippedFunctionStart + functionDefLine.length;
+                        const originalEnd = mapIndexToOriginal(lineEnd);
+                        const lineNumber = getLineNumberFromPosition(content, originalPosition);
+                        
+                        elements.push({
+                            name: name,
+                            body: `def ${name}(${params}):    pass`,
+                            type: 'function',
+                            language: 'python',
+                            lineNumber: lineNumber,
+                            sourcePosition: {
+                                startIndex: originalPosition,
+                                endIndex: originalEnd
+                            }
+                        });
+                        continue;
+                    }
+                    
+                    // Get the indentation of the first line in function body
+                    const bodyIndentation = nextLineMatch[1];
+                    
+                    // Start from the function definition
+                    const defLineEnd = strippedFunctionStart + functionDefLine.length;
+                    let bodyEnd = defLineEnd;
+                    let line;
+                    let lineStart = defLineEnd;
+                    
+                    // Scan lines until we find one with less indentation than the body
+                    const lines = contentWithoutComments.substr(defLineEnd).split('\n');
+                    let bodyLines = [];
+                    
+                    // Include the function definition line
+                    bodyLines.push(functionDefLine.trim());
+                    
+                    for (let i = 0; i < lines.length; i++) {
+                        line = lines[i];
+                        
+                        // Skip empty lines
+                        if (line.trim() === '') {
+                            bodyLines.push('');
+                            lineStart += line.length + 1; // +1 for the newline
+                            continue;
+                        }
+                        
+                        // Check indentation - if it's less than body indentation and non-empty, we've exited the function
+                        if (line.match(/^\s*[^\s]/) && !line.startsWith(bodyIndentation)) {
+                            break;
+                        }
+                        
+                        bodyLines.push(line);
+                        lineStart += line.length + 1; // +1 for the newline
+                        bodyEnd = lineStart;
+                    }
+                    
+                    // Map the end position
+                    const originalEnd = mapIndexToOriginal(bodyEnd);
+                    
+                    // Get function body with correct indentation
+                    const body = bodyLines.join('\n');
+                    
+                    // Get line number
+                    const lineNumber = getLineNumberFromPosition(content, originalPosition);
+                    
+                    elements.push({
+                        name: name,
+                        body: body,
+                        type: 'function',
+                        language: 'python',
+                        lineNumber: lineNumber,
+                        sourcePosition: {
+                            startIndex: originalPosition,
+                            endIndex: originalEnd
+                        }
+                    });
+                }
+                
+                // Regex for Python classes
+                const classRegex = /class\s+([a-zA-Z_][a-zA-Z0-9_]*)(?:\s*\([^)]*\))?:/g;
+                let classMatch;
+                
+                while ((classMatch = classRegex.exec(contentWithoutComments)) !== null) {
+                    const name = classMatch[1];
+                    const matchIndex = classMatch.index;
+                    
+                    // Skip if already processed
+                    if (processedMatchIndices.has(matchIndex)) {
+                        continue;
+                    }
+                    processedMatchIndices.add(matchIndex);
+                    
+                    // Map back to original position
+                    const originalPosition = mapIndexToOriginal(matchIndex);
+                    
+                    // Find class body - similar to function body extraction
+                    const strippedClassStart = matchIndex;
+                    const classDefLine = contentWithoutComments.substring(
+                        strippedClassStart,
+                        contentWithoutComments.indexOf('\n', strippedClassStart) + 1
+                    );
+                    
+                    // Extract indentation of the first line after class definition
+                    const nextLineMatch = contentWithoutComments.substr(
+                        strippedClassStart + classDefLine.length
+                    ).match(/^(\s*)[^\s]/);
+                    
+                    // If no line after class definition, use a minimum body
+                    if (!nextLineMatch) {
+                        // Map the end position
+                        const lineEnd = strippedClassStart + classDefLine.length;
+                        const originalEnd = mapIndexToOriginal(lineEnd);
+                        const lineNumber = getLineNumberFromPosition(content, originalPosition);
+                        
+                        elements.push({
+                            name: name,
+                            body: `class ${name}:    pass`,
+                            type: 'class',
+                            language: 'python',
+                            lineNumber: lineNumber,
+                            sourcePosition: {
+                                startIndex: originalPosition,
+                                endIndex: originalEnd
+                            }
+                        });
+                        continue;
+                    }
+                    
+                    // Get the indentation of the first line in class body
+                    const bodyIndentation = nextLineMatch[1];
+                    
+                    // Start from the class definition
+                    const defLineEnd = strippedClassStart + classDefLine.length;
+                    let bodyEnd = defLineEnd;
+                    let line;
+                    let lineStart = defLineEnd;
+                    
+                    // Scan lines until we find one with less indentation than the body
+                    const lines = contentWithoutComments.substr(defLineEnd).split('\n');
+                    let bodyLines = [];
+                    
+                    // Include the class definition line
+                    bodyLines.push(classDefLine.trim());
+                    
+                    for (let i = 0; i < lines.length; i++) {
+                        line = lines[i];
+                        
+                        // Skip empty lines
+                        if (line.trim() === '') {
+                            bodyLines.push('');
+                            lineStart += line.length + 1; // +1 for the newline
+                            continue;
+                        }
+                        
+                        // Check indentation - if it's less than body indentation and non-empty, we've exited the class
+                        if (line.match(/^\s*[^\s]/) && !line.startsWith(bodyIndentation)) {
+                            break;
+                        }
+                        
+                        bodyLines.push(line);
+                        lineStart += line.length + 1; // +1 for the newline
+                        bodyEnd = lineStart;
+                    }
+                    
+                    // Map the end position
+                    const originalEnd = mapIndexToOriginal(bodyEnd);
+                    
+                    // Get class body with correct indentation
+                    const body = bodyLines.join('\n');
+                    
+                    // Get line number
+                    const lineNumber = getLineNumberFromPosition(content, originalPosition);
+                    
+                    elements.push({
+                        name: name,
+                        body: body,
+                        type: 'class',
+                        language: 'python',
+                        lineNumber: lineNumber,
+                        sourcePosition: {
+                            startIndex: originalPosition,
+                            endIndex: originalEnd
+                        }
+                    });
+                }
+                
+                return elements;
+            } catch (error) {
+                self.postMessage({
+                    type: 'error',
+                    data: { message: 'Error extracting Python functions: ' + error.message + ' stack: ' + error.stack }
+                });
+                return [];
+            }
+        }
+
+        // Extract HTML elements from content
+        function extractHTMLElements(content, fileName) {
+            try {
+                const elements = [];
+                const processedMatchIndices = new Set(); // Track processed indices for HTML elements too
+
+                // Regex for HTML comments and script/style specific comments if needed
+                const htmlCommentRegex = /<!--[\s\S]*?-->/g;
+                const jsCommentRegex = /(\/\*[\s\S]*?\*\/)|(\/\/.*)/g; // For script content
+                const cssCommentRegex = /(\/\*[\s\S]*?\*\/)/g; // For style content
+
+                // --- Build indexMap for HTML content (excluding script/style inner content initially) ---
+                const htmlIndexMap = new Map();
+                let htmlStrippedIndex = 0;
+                let htmlOriginalIndex = 0;
+                const htmlCommentRanges = [];
+                let htmlCommentMatch;
+                while ((htmlCommentMatch = htmlCommentRegex.exec(content)) !== null) {
+                    htmlCommentRanges.push({ start: htmlCommentMatch.index, end: htmlCommentMatch.index + htmlCommentMatch[0].length });
+                }
+                htmlCommentRanges.sort((a, b) => a.start - b.start);
+
+                let currentHtmlCommentIndex = 0;
+                while (htmlOriginalIndex < content.length) {
+                     let inComment = false;
+                    if (currentHtmlCommentIndex < htmlCommentRanges.length && htmlOriginalIndex >= htmlCommentRanges[currentHtmlCommentIndex].start) {
+                        if (htmlOriginalIndex < htmlCommentRanges[currentHtmlCommentIndex].end) {
+                            inComment = true;
+                        } else {
+                            currentHtmlCommentIndex++;
+                            if (currentHtmlCommentIndex < htmlCommentRanges.length && htmlOriginalIndex >= htmlCommentRanges[currentHtmlCommentIndex].start) {
+                                inComment = true;
+                            }
+                        }
+                    }
+                    if (!inComment) {
+                        htmlIndexMap.set(htmlStrippedIndex, htmlOriginalIndex);
+                        htmlStrippedIndex++;
+                    }
+                    htmlOriginalIndex++;
+                }
+                htmlIndexMap.set(htmlStrippedIndex, htmlOriginalIndex);
+
+                function mapHtmlIndexToOriginal(matchIndex) {
+                    return htmlIndexMap.get(matchIndex) ?? matchIndex;
+                }
+
+                const contentWithoutHtmlComments = content.replace(htmlCommentRegex, '');
+                // --- End HTML indexMap build ---
+
+                // Extract embedded scripts and styles first
+                const scriptRegex = /<script([^>]*)>([\s\S]*?)<\/script>/g;
+                let scriptMatch;
+                while ((scriptMatch = scriptRegex.exec(contentWithoutHtmlComments)) !== null) {
+                    const scriptAttributes = scriptMatch[1];
+                    const scriptInnerContent = scriptMatch[2]; // Content BEFORE further comment removal
+                    const scriptMatchIndex = scriptMatch.index; // Index in contentWithoutHtmlComments
+
+                    // Map the script tag's start index back to the original HTML content index
+                    const originalScriptTagStart = mapHtmlIndexToOriginal(scriptMatchIndex);
+                    // Find the start of the inner content in the *original* HTML
+                    const originalInnerContentStart = content.indexOf(scriptInnerContent, originalScriptTagStart);
+
+                    if (originalInnerContentStart !== -1 && scriptInnerContent.trim()) {
+                        // Get accurate line number from the *original* HTML content
+                        const lineNumber = getLineNumberFromPosition(content, originalScriptTagStart);
+
+                        // Extract functions using the ORIGINAL inner content snippet
+                        // extractJSFunctions will handle its own comment removal and mapping internally
+                        const scriptElements = extractJSFunctions(scriptInnerContent, fileName);
+                        // Adjust line numbers and positions relative to the original file
+                        scriptElements.forEach(el => {
+                           if (el.sourcePosition) {
+                               el.sourcePosition.startIndex += originalInnerContentStart;
+                               el.sourcePosition.endIndex += originalInnerContentStart;
+                           }
+                           // Recalculate line number based on the adjusted start index in the full content
+                           el.lineNumber = getLineNumberFromPosition(content, el.sourcePosition?.startIndex ?? originalInnerContentStart);
+                        });
+                        elements.push(...scriptElements);
+
+                        // Add the whole script element
+                        if (!processedMatchIndices.has(scriptMatchIndex)) {
+                           processedMatchIndices.add(scriptMatchIndex);
+                           const estimatedOriginalScriptTagEnd = mapHtmlIndexToOriginal(scriptMatchIndex + scriptMatch[0].length);
+                           elements.push({
+                                name: `Script in ${fileName}`,
+                                body: scriptInnerContent.trim(), // Store trimmed inner content
+                                type: 'script',
+                                language: 'javascript',
+                                lineNumber: lineNumber,
+                                sourcePosition: {
+                                    startIndex: originalScriptTagStart,
+                                    endIndex: estimatedOriginalScriptTagEnd
+                                }
+                           });
+                        }
+                    }
+                }
+
+                const styleRegex = /<style([^>]*)>([\s\S]*?)<\/style>/g;
+                let styleMatch;
+                while ((styleMatch = styleRegex.exec(contentWithoutHtmlComments)) !== null) {
+                    const styleAttributes = styleMatch[1];
+                    const styleInnerContent = styleMatch[2]; // Content BEFORE further comment removal
+                    const styleMatchIndex = styleMatch.index; // Index in contentWithoutHtmlComments
+
+                    // Map the style tag's start index back to the original HTML content index
+                    const originalStyleTagStart = mapHtmlIndexToOriginal(styleMatchIndex);
+                    // Find the start of the inner content in the *original* HTML
+                    const originalInnerContentStart = content.indexOf(styleInnerContent, originalStyleTagStart);
+
+                    if (originalInnerContentStart !== -1 && styleInnerContent.trim()) {
+                        // Get accurate line number from the *original* HTML content
+                        const lineNumber = getLineNumberFromPosition(content, originalStyleTagStart);
+
+                        // Extract CSS selectors using the ORIGINAL inner content snippet
+                        const styleElements = extractCSSSelectors(styleInnerContent, fileName);
+                         // Adjust line numbers and positions relative to the original file
+                        styleElements.forEach(el => {
+                           if (el.sourcePosition) {
+                               el.sourcePosition.startIndex += originalInnerContentStart;
+                               el.sourcePosition.endIndex += originalInnerContentStart;
+                           }
+                           // Recalculate line number based on the adjusted start index in the full content
+                           el.lineNumber = getLineNumberFromPosition(content, el.sourcePosition?.startIndex ?? originalInnerContentStart);
+                        });
+                        elements.push(...styleElements);
+
+                         // Add the whole style element
+                        if (!processedMatchIndices.has(styleMatchIndex)) {
+                            processedMatchIndices.add(styleMatchIndex);
+                            const estimatedOriginalStyleTagEnd = mapHtmlIndexToOriginal(styleMatchIndex + styleMatch[0].length);
+                            elements.push({
+                                name: `Style in ${fileName}`,
+                                body: styleInnerContent.trim(), // Store trimmed inner content
+                                type: 'style',
+                                language: 'css',
+                                lineNumber: lineNumber,
+                                sourcePosition: {
+                                    startIndex: originalStyleTagStart,
+                                    endIndex: estimatedOriginalStyleTagEnd
+                                }
+                            });
+                        }
+                    }
+                }
+
+                // Extract other HTML elements (simple implementation)
+                // This part still uses contentWithoutHtmlComments and needs mapping
+                const elementRegex = /<([a-zA-Z0-9\-]+)(?:\s+[^>]*)?>([\s\S]*?)<\/\1>/g;
+                let elementMatch;
+                while ((elementMatch = elementRegex.exec(contentWithoutHtmlComments)) !== null) {
+                    const tagName = elementMatch[1];
+                    const innerHtml = elementMatch[2]; // Inner content of the tag
+                    const fullMatchText = elementMatch[0]; // Full tag match
+                    const elementMatchIndex = elementMatch.index; // Index in contentWithoutHtmlComments
+
+                    // Skip common elements and very short content
+                    if (tagName && !['html', 'head', 'body', 'script', 'style', 'meta', 'link', 'title'].includes(tagName.toLowerCase()) && innerHtml.trim().length > 10) {
+
+                        // Skip if already processed
+                        if (processedMatchIndices.has(elementMatchIndex)) {
+                            continue;
+                        }
+                        processedMatchIndices.add(elementMatchIndex);
+
+                         // Map index back to original
+                        const originalElementStart = mapHtmlIndexToOriginal(elementMatchIndex);
+                        const estimatedOriginalElementEnd = mapHtmlIndexToOriginal(elementMatchIndex + fullMatchText.length);
+
+                        // Get line number from original content
+                        const lineNumber = getLineNumberFromPosition(content, originalElementStart);
+
+                        elements.push({
+                            name: `<${tagName}> in ${fileName}`,
+                            body: innerHtml.trim(), // Store inner HTML as body
+                            type: 'html-element',
+                            language: 'html',
+                            lineNumber: lineNumber,
+                            sourcePosition: {
+                                startIndex: originalElementStart,
+                                endIndex: estimatedOriginalElementEnd
+                            }
+                        });
+                    }
+                }
+
+                return elements;
+            } catch (error) {
+                self.postMessage({
+                    type: 'error',
+                    data: { message: 'Error extracting HTML elements: ' + error.message + ' stack: ' + error.stack }
+                });
+                return [];
+            }
+        }
+        
+        // Function to find the longest common substring between two strings
+        // This is critical for ensuring we meet minimum matching content requirements between code snippets
+        // This function implements the core requirement: both elements in a comparison
+        // must share at least one continuous block of code that meets the minimum length requirement
+        // set in the language-specific sliders (minLengthCSS, minLengthJS, minLengthHTML, etc.)
+        function findCommonSubstring(str1, str2) {
+            const m = str1.length;
+            const n = str2.length;
+            const dp = Array(m + 1).fill().map(() => Array(n + 1).fill(0));
+            let length = 0;
+            
+            for (let i = 1; i <= m; i++) {
+                for (let j = 1; j <= n; j++) {
+                    if (str1[i - 1] === str2[j - 1]) {
+                        dp[i][j] = dp[i - 1][j - 1] + 1;
+                        if (dp[i][j] > length) {
+                            length = dp[i][j];
+                        }
+                    }
+                }
+            }
+            
+            return length;
+        }
+        
+        // New function to check for minimum number of exact token matches
+        // This ensures that comparisons have meaningful exact token matches, not just
+        // length similarity or substring matches - it filters out coincidental matches
+        function checkMinimumExactTokens(element1, element2) {
+            try {
+                // Handle different languages appropriately
+                if (element1.language === 'css' && element2.language === 'css') {
+                    // For CSS, check for exact property:value matches
+                    return checkCSSTokenMatches(element1.body, element2.body);
+                } else if (element1.language === 'javascript' && element2.language === 'javascript') {
+                    // For JavaScript, check for meaningful code token matches
+                    return checkJSTokenMatches(element1.body, element2.body);
+                } else {
+                    // For other languages, use a more generic approach
+                    return checkGenericTokenMatches(element1.body, element2.body);
+                }
+            } catch (err) {
+                console.error("Error in token matching:", err);
+                return true; // On error, don't filter out - be permissive
+            }
+        }
+        
+        // Check for CSS token matches with property:value pairs
+        function checkCSSTokenMatches(css1, css2) {
+            // Extract all property:value pairs from CSS
+            const getCSSTokens = (css) => {
+                const tokens = [];
+                // Match all property:value combinations
+                const matches = css.match(/\b([a-zA-Z-]+)\s*:\s*([^;{}]+)/g) || [];
+                
+                matches.forEach(match => {
+                    const normalized = match.trim().replace(/\s+/g, ' ');
+                    tokens.push(normalized);
+                });
+                
+                return tokens;
+            };
+            
+            const tokens1 = getCSSTokens(css1);
+            const tokens2 = getCSSTokens(css2);
+            
+            // Count exact matches
+            const exactMatches = tokens1.filter(token => tokens2.includes(token));
+            
+            // Minimum required matches based on the smaller set of tokens
+            const minRequired = Math.min(2, Math.min(tokens1.length, tokens2.length));
+            
+            return exactMatches.length >= minRequired;
+        }
+        
+        // Check for JS token matches looking at meaningful code patterns
+        function checkJSTokenMatches(js1, js2) {
+            // Extract meaningful tokens from JS, focusing on function calls, assignments, etc.
+            const getJSTokens = (js) => {
+                // Extract function calls, variable names, method calls, etc.
+                const functionCalls = js.match(/\b([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\([^)]*\)/g) || [];
+                const assignments = js.match(/\b([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=/g) || [];
+                const conditionals = js.match(/\b(if|else|switch|case|for|while|do)\b/g) || [];
+                const variables = js.match(/\b(var|let|const)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\b/g) || [];
+                
+                // Normalize the tokens
+                const tokens = [...functionCalls, ...assignments, ...conditionals, ...variables]
+                    .map(t => t.trim());
+                
+                return tokens;
+            };
+            
+            const tokens1 = getJSTokens(js1);
+            const tokens2 = getJSTokens(js2);
+            
+            // Count exact matches
+            const exactMatches = tokens1.filter(token => tokens2.includes(token));
+            
+            // Require at least 3 exact token matches for JS or 30% of tokens
+            const minRequired = Math.max(3, Math.ceil(Math.min(tokens1.length, tokens2.length) * 0.3));
+            
+            return exactMatches.length >= minRequired;
+        }
+        
+        // Generic token matcher for other languages
+        function checkGenericTokenMatches(text1, text2) {
+            // Split into words, filtering out common syntax and short tokens
+            const getTokens = (text) => {
+                return text.split(/[\s\n{}();,."'=<>+-]+/)
+                    .filter(token => token.length > 2)  // Skip short tokens
+                    .filter(token => !/^\d+$/.test(token)); // Skip numbers
+            };
+            
+            const tokens1 = getTokens(text1);
+            const tokens2 = getTokens(text2);
+            
+            // Count exact matches
+            const exactMatches = tokens1.filter(token => tokens2.includes(token));
+            
+            // Dynamic minimum based on token count
+            const minRequired = Math.max(2, Math.ceil(Math.min(tokens1.length, tokens2.length) * 0.2));
+            
+            return exactMatches.length >= minRequired;
+        }
+        
+        // Check if an element meets the minimum length requirement
+        function meetsMinLengthRequirement(body, elementType, language) {
+            if (!body) return false;
+            
+            let requiredLength = minLength;
+            
+            // Apply language-specific minimum lengths
+            if (language === 'css') {
+                requiredLength = minLengthCSS;
+            } else if (language === 'javascript') {
+                requiredLength = minLengthJS;
+            } else if (language === 'html') {
+                requiredLength = minLengthHTML;
+            } else if (language === 'python') {
+                requiredLength = minLengthPython;
+            }
+            
+            // Adjust length requirements for specific types of CSS elements
+            if (language === 'css') {
+                // Be more lenient for CSS selectors
+                if (elementType && (
+                    elementType === 'class-selector' || 
+                    elementType === 'id-selector' || 
+                    elementType === 'element-selector' ||
+                    elementType === 'css-selector'
+                )) {
+                    requiredLength = Math.max(3, Math.floor(requiredLength * 0.7));
+                }
+                
+                // Be more lenient for media queries and keyframes
+                if (body.includes('@media') || body.includes('@keyframes')) {
+                    requiredLength = Math.max(3, Math.floor(requiredLength * 0.8));
+                }
+            }
+            
+            // Be stricter in length priority mode for non-CSS elements
+            if (similarityPriorityMode === 'length' && language !== 'css') {
+                requiredLength = Math.floor(requiredLength * 1.3);
+            }
+            
+            return body.length >= requiredLength;
+        }
+        
+        // Helper function to get minimum length based on element type and language
+        function getMinLength(elementType, language) {
+            let requiredLength = minLength;
+            
+            // Apply language-specific minimum lengths
+            if (language === 'css') {
+                requiredLength = minLengthCSS;
+            } else if (language === 'javascript') {
+                requiredLength = minLengthJS;
+            } else if (language === 'html') {
+                requiredLength = minLengthHTML;
+            } else if (language === 'python') {
+                requiredLength = minLengthPython;
+            }
+            
+            // Adjust length requirements for specific types of CSS elements
+            if (language === 'css') {
+                // Be more lenient for CSS selectors
+                if (elementType && (
+                    elementType === 'class-selector' || 
+                    elementType === 'id-selector' || 
+                    elementType === 'element-selector' ||
+                    elementType === 'css-selector'
+                )) {
+                    requiredLength = Math.max(3, Math.floor(requiredLength * 0.7));
+                }
+                
+                // Be more lenient for media queries and keyframes
+                if (elementType === 'media-query' || elementType === 'keyframes') {
+                    requiredLength = Math.max(3, Math.floor(requiredLength * 0.8));
+                }
+            }
+            
+            // Be stricter in length priority mode for non-CSS elements
+            if (similarityPriorityMode === 'length' && language !== 'css') {
+                requiredLength = Math.floor(requiredLength * 1.3);
+            }
+            
+            return requiredLength;
+        }
+        
+        // Function to detect if text is a comment in different programming languages
+        function isComment(text, language) {
+            if (!text || typeof text !== 'string') return false;
+            
+            const trimmedText = text.trim();
+            
+            // HTML comments
+            if (language === 'html' && 
+                (trimmedText.startsWith('<!--') || trimmedText.endsWith('-->'))) {
+                return true;
+            }
+            
+            // CSS comments
+            if ((language === 'css' || language === 'javascript') && 
+                (trimmedText.startsWith('/*') || trimmedText.endsWith('*/') || 
+                 trimmedText.match(/^\/\*[\s\S]*\*\/$/))) {
+                return true;
+            }
+            
+            // JavaScript/Python single-line comments
+            if ((language === 'javascript' || language === 'python') && 
+                (trimmedText.startsWith('//') || trimmedText.startsWith('#'))) {
+                return true;
+            }
+            
+            // Python triple-quote comments
+            if (language === 'python' && 
+                ((trimmedText.startsWith('"""') && trimmedText.endsWith('"""')) || 
+                 (trimmedText.startsWith("'''") && trimmedText.endsWith("'''")))) {
+                return true;
+            }
+            
+            return false;
+        }
+        
+        // Helper function to extract normalized CSS properties from a rule block
+        function extractCSSProperties(cssText) {
+            if (!cssText) return '';
+            
+            // Remove comments
+            const noComments = cssText.replace(/\/\*[\s\S]*?\*\//g, '');
+            
+            // Extract individual property declarations
+            const propertyRegex = /([a-zA-Z\-]+)\s*:\s*([^;]+);/g;
+            const properties = [];
+            let match;
+            
+            while ((match = propertyRegex.exec(noComments)) !== null) {
+                const property = match[1].trim();
+                const value = match[2].trim();
+                properties.push(`${property}:${value}`);
+            }
+            
+            // Sort properties to ensure consistent comparison regardless of order
+            return properties.sort().join(';');
+        }
+        
+        // Calculate code similarity between two code snippets
+        function calculateSimilarity(code1, code2) {
+            // Quick check for identical code
+            if (code1 === code2) {
+                return {
+                    similarity: 100,
+                    stats: {
+                        tokenSimilarity: 100,
+                        lengthSimilarity: 100,
+                        commonTokens: code1.split(/\s+/).length,
+                        totalTokens: code1.split(/\s+/).length * 2
+                    }
+                };
+            }
+            
+            // Normalize the code by removing whitespace
+            const normalize = str => str.replace(/\s+/g, ' ').trim();
+            const normalized1 = normalize(code1);
+            const normalized2 = normalize(code2);
+            
+            // Tokenize the code - for JavaScript, use a more sophisticated approach
+            function tokenize(str) {
+                // Try different tokenization strategies depending on code structure
+                
+                // Remove comments first
+                str = str.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
+                
+                // For JavaScript specifically, tokenize by statements, property definitions, etc.
+                let tokens = str.split(/[;{}(),=:]/).map(t => t.trim()).filter(t => t.length > 2);
+                
+                // If not enough tokens, try a simpler approach
+                if (tokens.length < 3) {
+                    tokens = str.split(/[\s;,{}()=:]/).filter(t => t.length > 2);
+                }
+                
+                return tokens;
+            }
+            
+            const tokens1 = tokenize(normalized1);
+            const tokens2 = tokenize(normalized2);
+            
+            // Create frequency maps for tokens
+            const freqMap1 = {};
+            const freqMap2 = {};
+            
+            tokens1.forEach(token => {
+                freqMap1[token] = (freqMap1[token] || 0) + 1;
+            });
+            
+            tokens2.forEach(token => {
+                freqMap2[token] = (freqMap2[token] || 0) + 1;
+            });
+            
+            // Count common tokens considering frequency
+            let commonTokens = 0;
+            Object.keys(freqMap1).forEach(token => {
+                if (freqMap2[token]) {
+                    commonTokens += Math.min(freqMap1[token], freqMap2[token]);
+                }
+            });
+            
+            // Calculate unique token sets for improved similarity calculation
+            const set1 = new Set(tokens1);
+            const set2 = new Set(tokens2);
+            
+            // Calculate Jaccard similarity for unique tokens
+            let uniqueCommonTokens = 0;
+            set1.forEach(token => {
+                if (set2.has(token)) {
+                    uniqueCommonTokens++;
+                }
+            });
+            
+            const jaccardSimilarity = uniqueCommonTokens / (set1.size + set2.size - uniqueCommonTokens) * 100;
+            
+            // Calculate length similarity
+            const lengthRatio = Math.min(code1.length, code2.length) / Math.max(code1.length, code2.length);
+            const lengthSimilarity = lengthRatio * 100;
+            
+            // Calculate token similarity
+            const totalTokens = tokens1.length + tokens2.length;
+            const tokenSimilarity = totalTokens > 0 ? (commonTokens * 2 / totalTokens) * 100 : 0;
+            
+            // Final similarity score based on mode, with additional heuristics
+            let similarity = 0;
+            
+            if (similarityPriorityMode === 'token') {
+                // Token-priority mode: 70% token similarity, 15% jaccard, 15% length similarity
+                similarity = tokenSimilarity * 0.7 + jaccardSimilarity * 0.15 + lengthSimilarity * 0.15;
+            } else if (similarityPriorityMode === 'length') {
+                // Length-priority mode: 20% token similarity, 15% jaccard, 65% length similarity
+                similarity = tokenSimilarity * 0.2 + jaccardSimilarity * 0.15 + lengthSimilarity * 0.65;
+            } else {
+                // Balanced mode: Equal weight with jaccard
+                similarity = tokenSimilarity * 0.4 + jaccardSimilarity * 0.3 + lengthSimilarity * 0.3;
+            }
+            
+            // Add additional checks to avoid false positives
+            // If the code is very short, be stricter with similarity
+            if (code1.length < 50 || code2.length < 50) {
+                similarity *= 0.85; // Reduce similarity score for very short code blocks
+            }
+            
+            // If token count is very different, penalize similarity score
+            const tokenCountRatio = Math.min(tokens1.length, tokens2.length) / Math.max(tokens1.length, tokens2.length);
+            if (tokenCountRatio < 0.7) {
+                similarity *= tokenCountRatio; // Apply a penalty based on token count difference
+            }
+            
+            // Ensure similarity is between 0-100
+            similarity = Math.max(0, Math.min(100, similarity));
+            
+            return {
+                similarity,
+                stats: {
+                    tokenSimilarity: tokenSimilarity.toFixed(2),
+                    lengthSimilarity: lengthSimilarity.toFixed(2),
+                    jaccardSimilarity: jaccardSimilarity.toFixed(2),
+                    commonTokens,
+                    uniqueCommonTokens,
+                    totalTokens,
+                    tokens1: tokens1.length,
+                    tokens2: tokens2.length,
+                    set1Size: set1.size,
+                    set2Size: set2.size
+                }
+            };
+        }
+        
+        // Function to check if CSS rules contain only common utility patterns
+        function isCommonCSSUtilityPattern(element1, element2) {
+            // Only apply to CSS elements
+            if (element1.language !== 'css' || element2.language !== 'css') {
+                return false;
+            }
+            
+            // Define sets of common CSS patterns that are too basic to be meaningful duplications
+            const commonPatterns = [
+                // Flex layout basics
+                ['display: flex', 'align-items: center'],
+                ['display: flex', 'justify-content:'],
+                ['display: flex', 'flex-direction:'],
+                ['display: flex', 'flex-wrap:'],
+                ['display: flex', 'gap:'],
+                
+                // Common layout patterns
+                ['position: relative', 'width:', 'height:'],
+                ['position: absolute', 'top:', 'left:'],
+                ['position: fixed', 'top:', 'left:'],
+                
+                // Common form element styling
+                ['border: none', 'border-radius:', 'cursor: pointer'],
+                ['border-radius:', 'box-shadow:'],
+                
+                // Common state patterns
+                ['opacity:', 'pointer-events: none'],
+                ['opacity:', 'cursor: not-allowed'],
+                
+                // Basic container styles
+                ['max-width:', 'margin:', 'padding:'],
+                ['background-color:', 'border-radius:'],
+                ['z-index:', 'background-color:'],
+                
+                // Spacing utilities
+                ['margin-top:', 'margin-bottom:'],
+                ['padding-left:', 'padding-right:'],
+                
+                // Text formatting
+                ['font-size:', 'font-weight:'],
+                ['color:', 'font-family:']
+            ];
+            
+            // Function to check if a CSS body contains patterns in a pattern set
+            const containsPatterns = (body, patterns) => {
+                let matchCount = 0;
+                for (const pattern of patterns) {
+                    if (body.includes(pattern)) {
+                        matchCount++;
+                    }
+                }
+                // Return true if enough patterns match to suggest this is a common pattern
+                // Use a percentage threshold to be proportional to pattern complexity
+                return matchCount >= Math.ceil(patterns.length * 0.5);
+            };
+            
+            // Check element bodies against pattern sets
+            for (const patternSet of commonPatterns) {
+                const element1MatchesPattern = containsPatterns(element1.body, patternSet);
+                const element2MatchesPattern = containsPatterns(element2.body, patternSet);
+                
+                // If both elements match the same common pattern set and they're different selectors
+                if (element1MatchesPattern && element2MatchesPattern && 
+                    element1.normalizedSelector !== element2.normalizedSelector) {
+                    // Calculate how many properties the elements contain
+                    const propertyCount1 = (element1.body.match(/:[^;}]+[;}]/g) || []).length;
+                    const propertyCount2 = (element2.body.match(/:[^;}]+[;}]/g) || []).length;
+                    
+                    // If they're simple utility classes with few properties
+                    if (propertyCount1 <= 4 && propertyCount2 <= 4) {
+                        return true; // It's a common utility pattern with few properties
+                    }
+                    
+                    // For more complex components, check for fundamental CSS layout patterns
+                    if ((element1.body.includes('display: flex') && element2.body.includes('display: flex')) ||
+                        (element1.body.includes('position: fixed') && element2.body.includes('position: fixed')) ||
+                        (element1.body.includes('position: absolute') && element2.body.includes('position: absolute'))) {
+                        
+                        // Check if they have the same basic layout intent
+                        if ((element1.body.includes('align-items:') && element2.body.includes('align-items:')) ||
+                            (element1.body.includes('justify-content:') && element2.body.includes('justify-content:')) ||
+                            (element1.body.includes('top:') && element2.body.includes('top:'))) {
+                            return true; // Similar layout pattern
+                        }
+                    }
+                }
+            }
+            
+            return false;
+        }
+        
+        // Check if a code element is a duplicate or near-duplicate of another
+        function detectDuplicateCode(element1, element2) {
+            // Skip if comparing an element with itself
+            if (element1 === element2) return false;
+            
+            // Quick equality check for exact duplicates
+            if (element1.body === element2.body) {
+                return {
+                    isDuplicate: true,
+                    similarity: 100,
+                    type: 'exact'
+                };
+            }
+            
+            // Add special handling for CSS selectors where one might have a dot and the other doesn't
+            // This prevents duplicate comparisons between .class-name and class-name which are essentially
+            // the same selector just extracted slightly differently from the CSS
+            if (element1.language === 'css' && element2.language === 'css') {
+                // Check if we're comparing CSS selectors 
+                if ((element1.type === 'class-selector' || element1.type === 'element-selector') && 
+                    (element2.type === 'class-selector' || element2.type === 'element-selector')) {
+                    
+                    // Get selector names without the dot prefix
+                    const name1 = element1.name.replace(/^\./, '');
+                    const name2 = element2.name.replace(/^\./, '');
+                    
+                    // If the names match after removing dots, they're essentially the same selector
+                    if (name1 === name2) {
+                        return {
+                            isDuplicate: true,
+                            similarity: 99,
+                            type: 'equivalent-css-selector'
+                        };
+                    }
+                    
+                    // Check for CSS body similarity after normalization
+                    const normalizeCSS = (css) => {
+                        return css
+                            .replace(/^\.?[^{]+/, '') // Remove selector part
+                            .replace(/\s+/g, '')      // Remove all whitespace
+                            .replace(/;}/g, '}')      // Normalize trailing semicolons
+                            .trim();
+                    };
+                    
+                    const normalizedCSS1 = normalizeCSS(element1.body);
+                    const normalizedCSS2 = normalizeCSS(element2.body);
+                    
+                    if (normalizedCSS1 === normalizedCSS2 && normalizedCSS1.length > 5) {
+                        return {
+                            isDuplicate: true,
+                            similarity: 98,
+                            type: 'identical-css-properties'
+                        };
+                    }
+                }
+            }
+            
+            // Normalize both elements by removing whitespace and comments
+            const normalize = (code) => {
+                return code
+                    .replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '') // Remove comments
+                    .replace(/\s+/g, ' ')                     // Normalize whitespace
+                    .trim();
+            };
+            
+            const normalized1 = normalize(element1.body);
+            const normalized2 = normalize(element2.body);
+            
+            // Check for normalized exact match
+            if (normalized1 === normalized2) {
+                return {
+                    isDuplicate: true,
+                    similarity: 99.9, // Not 100 since original had formatting differences
+                    type: 'normalized'
+                };
+            }
+            
+            // Check for function elements with same name
+            if (element1.type === 'function' && element2.type === 'function' && 
+                element1.name === element2.name && element1.name !== 'anonymous function') {
+                
+                // Calculate similarity to determine if it's a near-duplicate
+                const { similarity } = calculateSimilarity(element1.body, element2.body);
+                
+                if (similarity > 90) {
+                    return {
+                        isDuplicate: true,
+                        similarity: similarity,
+                        type: 'function-with-same-name'
+                    };
+                }
+            }
+            
+            // Special check for functions where one is a comment of another
+            // This handles the "if it doesn't exist in your code" issue
+            if ((element1.type === 'function' || element2.type === 'function')) {
+                // Check if one element body contains the other element body entirely
+                if (element1.body.includes(element2.body) || element2.body.includes(element1.body)) {
+                    const { similarity } = calculateSimilarity(element1.body, element2.body);
+                    
+                    if (similarity > 85) {
+                        return {
+                            isDuplicate: true,
+                            similarity: similarity,
+                            type: 'nested-duplicate'
+                        };
+                    }
+                }
+                
+                // Check for comment lines containing function names at the start
+                const commentLineMatch1 = element1.body.match(/^\s*\/\/\s*(.+)/);
+                const commentLineMatch2 = element2.body.match(/^\s*\/\/\s*(.+)/);
+                
+                if (commentLineMatch1 && element2.name && commentLineMatch1[1].includes(element2.name)) {
+                    return {
+                        isDuplicate: false,
+                        similarity: 0, // Force low similarity
+                        type: 'comment-reference'
+                    };
+                }
+                
+                if (commentLineMatch2 && element1.name && commentLineMatch2[1].includes(element1.name)) {
+                    return {
+                        isDuplicate: false,
+                        similarity: 0, // Force low similarity
+                        type: 'comment-reference'
+                    };
+                }
+            }
+            
+            return false;
+        }
+        
+        // Process elements for a single file
+        function processFileElements(fileIndex, elements, filePath) {
+            const fileData = {
+                name: files[fileIndex],
+                path: filePath,
+                elements: elements,
+                comparisons: []
+            };
+            
+            // Process previous files against this one
+            for (let i = 0; i < fileIndex; i++) {
+                const otherFile = filesData[i];
+                
+                for (let j = 0; j < elements.length; j++) {
+                    const element = elements[j];
+                    
+                    // Skip elements that are too short
+                    if (!meetsMinLengthRequirement(element.body, element.type, element.language)) {
+                        continue;
+                    }
+                    
+                    // Skip elements that aren't included based on language settings
+                    if ((element.language === 'html' && !includeHTML) ||
+                        (element.language === 'css' && !includeCSS) ||
+                        (element.language === 'javascript' && !includeJS) ||
+                        (element.language === 'python' && !includePython)) {
+                        continue;
+                    }
+                    
+                    for (let k = 0; k < otherFile.elements.length; k++) {
+                        const otherElement = otherFile.elements[k];
+                        
+                        // Skip elements that are too short
+                        if (!meetsMinLengthRequirement(otherElement.body, otherElement.type, otherElement.language)) {
+                            continue;
+                        }
+                        
+                        // Skip elements that aren't included based on language settings
+                        if ((otherElement.language === 'html' && !includeHTML) ||
+                            (otherElement.language === 'css' && !includeCSS) ||
+                            (otherElement.language === 'javascript' && !includeJS) ||
+                            (otherElement.language === 'python' && !includePython)) {
+                            continue;
+                        }
+                        
+                        // Check for duplicates first
+                        const dupeCheck = detectDuplicateCode(element, otherElement);
+                        
+                        if (dupeCheck && dupeCheck.type === 'comment-reference') {
+                            // Skip this comparison - it's a comment referencing a function
+                            continue;
+                        }
+                        
+                        if (dupeCheck && dupeCheck.isDuplicate) {
+                            // It's a duplicate - add it with the duplicate info
+                            fileData.comparisons.push({
+                                source: element,
+                                target: otherElement,
+                                targetFile: otherFile.name,
+                                similarity: dupeCheck.similarity,
+                                isDuplicate: true,
+                                duplicateType: dupeCheck.type
+                            });
+                        } else {
+                            // Regular similarity comparison
+                            const { similarity, stats } = calculateSimilarity(element.body, otherElement.body);
+                            
+                            // Apply threshold and add to comparisons if similarity is high enough
+                            if (similarity >= codeSimilarityThreshold) {
+                                fileData.comparisons.push({
+                                    source: element,
+                                    target: otherElement,
+                                    targetFile: otherFile.name,
+                                    similarity: similarity,
+                                    stats: stats
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Sort comparisons by similarity (highest first)
+            fileData.comparisons.sort((a, b) => b.similarity - a.similarity);
+            
+            return fileData;
+        }
+        
+        // Process files in batches and extract elements
+        let processedFiles = 0;
+        const totalFiles = files.length;
+        
+        // Extract elements from each file, considering code type toggles
+        for (let i = 0; i < files.length; i += batchSize) {
+            const batch = files.slice(i, i + batchSize);
+            const batchContents = contents.slice(i, i + batchSize);
+            
+            batch.forEach((file, index) => {
+                const content = batchContents[index];
+                const fileExt = file.extension.toLowerCase();
+                
+                // Skip file types that are toggled off
+                if ((!includeHTML && (fileExt === '.html' || fileExt === '.htm')) || 
+                    (!includeCSS && fileExt === '.css') || 
+                    (!includeJS && fileExt === '.js') ||
+                    (!includePython && fileExt === '.py')) {
+                    // Skip this file
+                    return;
+                }
+                
+                // Extract elements and then filter by minimum length
+                const allElements = extractCodeElements(content, file.extension, file.name);
+                
+                // Apply code type filtering to elements
+                const filteredElements = allElements.filter(element => {
+                    // Filter out elements from disabled languages
+                    if (!includeHTML && element.language === 'html') return false;
+                    if (!includeCSS && element.language === 'css') return false;
+                    if (!includeJS && element.language === 'javascript') return false;
+                    if (!includePython && element.language === 'python') return false;
+                    
+                    // Apply minimum length requirements
+                    return meetsMinLengthRequirement(element.body, element.type, element.language);
+                });
+                
+                filesData.push({
+                    name: file.name,
+                    extension: file.extension,
+                    elements: filteredElements,
+                    comparisons: [],
+                    fullContent: content // Store the full file content for usage location scanning
+                });
+            });
+            
+            processedFiles += batch.length;
+            const progress = (processedFiles / totalFiles) * 25; // Scale to 0-25% range
+            self.postMessage({
+                type: 'progress',
+                data: { 
+                    progress: progress, 
+                    message: 'Extracting code elements: ' + processedFiles + '/' + totalFiles + ' files processed' 
+                }
+            });
+        }
+
+        // Update progress before the comparison phase
+        self.postMessage({
+            type: 'progress',
+            data: { progress: 30, message: 'Starting similarity comparisons...' }
+        });
+        
+        // Collect stats about the files for the UI
+        fileStats = filesData.map(file => ({
+            name: file.name,
+            extension: file.extension,
+            elements: file.elements.length,
+            status: file.elements.length > 0 ? 'ok' : 'empty'
+        }));
+        
+        // Send file stats to the main thread
+        self.postMessage({
+            type: 'fileStats',
+            data: fileStats
+        });
+
+        self.postMessage({
+            type: 'progress',
+            data: { progress: 75, message: 'Computing comparisons...' }
+        });
+
+        // For progress tracking
+        processedFiles = 0; // Reset processedFiles counter for the comparison phase
+        const totalFilesForComparison = filesData.length; // Renamed to avoid redeclaration
+
+        filesData.forEach((file, fileIndex) => {
+            // Skip if file has no elements to compare
+            if (!file.elements || file.elements.length === 0) {
+                return;
+            }
+            
+            // Initialize comparisons array if it doesn't exist
+            if (!file.comparisons) {
+                file.comparisons = [];
+            }
+            
+            // Process each element in this file
+            file.elements.forEach(element => {
+                // Skip source elements that don't meet the minimum length requirement
+                if (!meetsMinLengthRequirement(element.body, element.type, element.language)) {
+                    return;
+                }
+                
+                // Intra-file comparisons (elements within the same file)
+                file.elements.forEach(otherElement => {
+                    // Skip if comparing element with itself
+                    if (element === otherElement) {
+                        return;
+                    }
+                    
+                    // Skip if this is the same element at the same position (different regex match)
+                    if (element.sourcePosition && otherElement.sourcePosition &&
+                        element.sourcePosition.startIndex === otherElement.sourcePosition.startIndex &&
+                        element.name === otherElement.name) {
+                        return;
+                    }
+                    
+                    // Instead of skipping all same-name functions in same file, only skip if they're close together
+                    // This allows finding duplicate functions with same name but at different locations
+                    if (element.name === otherElement.name) {
+                        // If we have position info, use it to check if they're truly different instances
+                        if (element.sourcePosition && otherElement.sourcePosition) {
+                            // Check if the elements are very close together or overlapping (likely same instance)
+                            const elementStart = element.sourcePosition.startIndex;
+                            const elementEnd = element.sourcePosition.endIndex;
+                            const otherStart = otherElement.sourcePosition.startIndex;
+                            const otherEnd = otherElement.sourcePosition.endIndex;
+                            
+                            // Calculate the position difference
+                            const positionDiff = Math.abs(elementStart - otherStart);
+                            
+                            // Only skip if they're the exact same position or very close together
+                            // We're using a smaller threshold to ensure we find duplicate functions
+                            if ((elementStart === otherStart && elementEnd === otherEnd) || positionDiff < 10) {
+                                return;
+                            }
+                            
+                            // If they're far apart, especially functions with the same name, they're 
+                            // likely duplicate declarations that we want to compare
+                            // In this case, continue with the comparison
+                        } else if (element.lineNumber && otherElement.lineNumber) {
+                            // If we only have line numbers, skip if they're the exact same line
+                            if (element.lineNumber === otherElement.lineNumber) {
+                                return;
+                            }
+                            
+                            // If the lines are different, especially for functions with the same name,
+                            // they're likely duplicate declarations that we want to compare
+                        }
+                        // If we don't have position or line info, we'll continue with the comparison
+                        // This allows for comparison of functions with the same name
+                    }
+                    
+                    // Enhanced check for CSS selectors that are effectively the same
+                    if (element.language === 'css' && otherElement.language === 'css' &&
+                        element.normalizedSelector && otherElement.normalizedSelector && 
+                        element.normalizedSelector === otherElement.normalizedSelector) {
+                        // Skip comparison of CSS selectors that are normalizes to the same value
+                        // e.g., '.foo' and 'foo' are effectively the same selector
+                        return;
+                    }
+                    
+                    // Skip if the elements have the same line number in the same file
+                    if (element.lineNumber && otherElement.lineNumber && 
+                        element.lineNumber === otherElement.lineNumber) {
+                        return;
+                    }
+
+                    // Check if one element is contained within the other (parent-child relationship)
+                    if (element.sourcePosition && otherElement.sourcePosition) {
+                        // Check if element contains otherElement
+                        const elementContainsOther = 
+                            element.sourcePosition.startIndex <= otherElement.sourcePosition.startIndex &&
+                            element.sourcePosition.endIndex >= otherElement.sourcePosition.endIndex;
+                        
+                        // Check if otherElement contains element
+                        const otherContainsElement = 
+                            otherElement.sourcePosition.startIndex <= element.sourcePosition.startIndex &&
+                            otherElement.sourcePosition.endIndex >= element.sourcePosition.endIndex;
+                        
+                        // Skip if one contains the other
+                        if (elementContainsOther || otherContainsElement) {
+                            return;
+                        }
+                    }
+                    
+                    // Skip target elements that don't meet the minimum length requirement
+                    if (!meetsMinLengthRequirement(otherElement.body, otherElement.type, otherElement.language)) {
+                        return;
+                    }
+                    
+                    const { similarity, stats } = calculateSimilarity(element.body, otherElement.body);
+                    
+                    // Apply a stricter threshold for CSS elements to reduce false positives
+                    let effectiveSimilarityThreshold = codeSimilarityThreshold;
+                    if (element.language === 'css') {
+                        // Increase threshold by 10-15% for CSS to reduce false positives
+                        effectiveSimilarityThreshold = Math.min(95, codeSimilarityThreshold + 12);
+                        
+                        // Use the isCommonCSSUtilityPattern function to check for common patterns
+                        if (isCommonCSSUtilityPattern(element, otherElement)) {
+                            // Raise threshold significantly for common patterns
+                            effectiveSimilarityThreshold = Math.min(95, effectiveSimilarityThreshold + 15);
+                        }
+                    }
+                    
+                    if (similarity > effectiveSimilarityThreshold) {
+                        // Find the longest common substring to verify there's enough shared content
+                        const commonSubstringLength = findCommonSubstring(element.body, otherElement.body);
+                        
+                        // Get required minimum common substring length based on language and element type
+                        const requiredMinCommonLength = getMinLength(element.type, element.language);
+                        
+                        // Skip comparison if common substring is too short - this ensures actual matching code meets minimum length
+                        if (commonSubstringLength < requiredMinCommonLength) {
+                            return;
+                        }
+                        
+                        // NEW: Token-based filter for exact matching tokens
+                        if (!checkMinimumExactTokens(element, otherElement)) {
+                            // Skip this comparison if there aren't enough exact token matches
+                            return;
+                        }
+                        
+                        // Add additional check for length in length priority mode
+                        if (similarityPriorityMode === 'length') {
+                            // Check if the length similarity meets the threshold
+                            const lengthSimilarity = parseFloat(stats.lengthSimilarity);
+                            if (lengthSimilarity < effectiveSimilarityThreshold * 0.8) {
+                                // Skip this comparison if length similarity is too low
+                                return;
+                            }
+                            
+                            // Check for minimum common content length in length mode
+                            // In length priority mode, be even stricter about the minimum common substring
+                            if (commonSubstringLength < requiredMinCommonLength * 1.2) {
+                                // Skip this comparison if common substring is too short for length mode
+                                return;
+                            }
+                        }
+                        
+                        // Skip if comparing a class method with its parent class
+                        // Check if the method is inside the class body
+                        if ((element.type === 'class-method' && otherElement.type === 'class') || 
+                            (element.type === 'class' && otherElement.type === 'class-method')) {
+                            
+                            // Get the class and method elements
+                            const classElement = element.type === 'class' ? element : otherElement;
+                            const methodElement = element.type === 'class-method' ? element : otherElement;
+                            
+                            // Check if the method is contained in the class body
+                            if (classElement.body.includes(methodElement.name + '(')) {
+                                // This is a method compared to its parent class - skip it
+                                return;
+                            }
+                        }
+
+                        // Create the comparison object
+                        let comparison = {
+                            source: {
+                                ...element,
+                                fileName: element.fileName || file.name // Ensure source fileName is set
+                            },
+                            target: {
+                                ...otherElement,
+                                fileName: otherElement.fileName || file.name // For same-file comparisons, use file.name, not otherFile
+                            },
+                            sourceFile: element.fileName || file.name, // Add sourceFile property
+                            targetFile: file.name, // For same-file comparisons, this is the same as the source file
+                            similarity: similarity,
+                            stats: stats
+                        };
+
+                        // Special handling for constructor and reset/init methods
+                        // These often have similar code but should be considered a refactoring opportunity
+                        if (element.type === 'class-method' && otherElement.type === 'class-method') {
+                            // Specifically flag constructor vs. reset/init methods with similar code as potential refactoring opportunity
+                            if ((element.name === 'constructor' && 
+                                 (otherElement.name === 'reset' || otherElement.name === 'init' || otherElement.name === 'initialize')) ||
+                                (otherElement.name === 'constructor' && 
+                                 (element.name === 'reset' || element.name === 'init' || element.name === 'initialize'))) {
+                                
+                                // Add a flag to indicate this is a common pattern that might benefit from refactoring to a shared private method
+                                comparison.refactoringOpportunity = true;
+                                comparison.refactoringType = 'constructor-reset-duplication';
+                            }
+                        }
+                        
+                        // Verify that neither source nor target appears to be a CSS fragment
+                        const isSourceFragment = element.language === 'css' && 
+                            (element.name.includes(';') || element.body.endsWith(';'));
+                        const isTargetFragment = otherElement.language === 'css' && 
+                            (otherElement.name.includes(';') || otherElement.body.endsWith(';'));
+                        
+                        // Check if either source or target appears to be a comment
+                        const isSourceComment = isComment(element.name, element.language) || 
+                                               isComment(element.body, element.language) ||
+                                               isComment(element.full, element.language);
+                        
+                        const isTargetComment = isComment(otherElement.name, otherElement.language) || 
+                                               isComment(otherElement.body, otherElement.language) ||
+                                               isComment(otherElement.full, otherElement.language);
+                        
+                        // Skip fragments in CSS or if either is a comment
+                        if (isSourceFragment || isTargetFragment || isSourceComment || isTargetComment) {
+                            return;
+                        }
+                        
+                        // Skip common CSS utility patterns that aren't meaningful duplications
+                        if (isCommonCSSUtilityPattern(element, otherElement)) {
+                            return;
+                        }
+                        
+                        file.comparisons.push(comparison);
+                        
+                        // Update comparison count in fileStats
+                        const fileStatsIndex = fileStats.findIndex(fs => fs.name === file.name);
+                        if (fileStatsIndex !== -1) {
+                            fileStats[fileStatsIndex].comparisons++;
+                        }
+                    }
+                });
+                
+                // Cross-file comparisons
+                filesData.forEach((otherFile, otherIndex) => {
+                    if (fileIndex !== otherIndex) {
+                        otherFile.elements.forEach(otherElement => {
+                            // Skip target elements that don't meet the minimum length requirement
+                            if (!meetsMinLengthRequirement(otherElement.body, otherElement.type, otherElement.language)) {
+                                return;
+                            }
+                            
+                            // Enhanced check for CSS selectors that are effectively the same
+                            if (element.language === 'css' && otherElement.language === 'css' &&
+                                element.normalizedSelector && otherElement.normalizedSelector && 
+                                element.normalizedSelector === otherElement.normalizedSelector) {
+                                // Skip comparison of CSS selectors that normalize to the same value
+                                // e.g., '.foo' and 'foo' are effectively the same selector
+                                return;
+                            }
+                            
+                            // We don't need to check for spatial containment across different files
+                            // since elements in different files can't contain each other
+                            
+                            // Don't skip same-named functions across different files
+                            // This ensures we compare functions with same name across files
+                            
+                            const { similarity, stats } = calculateSimilarity(element.body, otherElement.body);
+                            
+                            // Apply a stricter threshold for CSS elements to reduce false positives
+                            let effectiveSimilarityThreshold = codeSimilarityThreshold;
+                            if (element.language === 'css') {
+                                // Increase threshold by 10-15% for CSS to reduce false positives
+                                effectiveSimilarityThreshold = Math.min(95, codeSimilarityThreshold + 12);
+                                
+                                // Use the isCommonCSSUtilityPattern function to check for common patterns
+                                if (isCommonCSSUtilityPattern(element, otherElement)) {
+                                    // Raise threshold significantly for common patterns
+                                    effectiveSimilarityThreshold = Math.min(95, effectiveSimilarityThreshold + 15);
+                                }
+                            }
+                            
+                            if (similarity > effectiveSimilarityThreshold) {
+                                // Find the longest common substring to verify there's enough shared content
+                                const commonSubstringLength = findCommonSubstring(element.body, otherElement.body);
+                                
+                                // Get required minimum common substring length based on language and element type
+                                const requiredMinCommonLength = getMinLength(element.type, element.language);
+                                
+                                // Skip comparison if common substring is too short - this ensures actual matching code meets minimum length
+                                if (commonSubstringLength < requiredMinCommonLength) {
+                                    return;
+                                }
+                                
+                                // NEW: Token-based filter for exact matching tokens
+                                if (!checkMinimumExactTokens(element, otherElement)) {
+                                    // Skip this comparison if there aren't enough exact token matches
+                                    return;
+                                }
+                                
+                                // Add additional check for length in length priority mode
+                                if (similarityPriorityMode === 'length') {
+                                    // Check if the length similarity meets the threshold
+                                    const lengthSimilarity = parseFloat(stats.lengthSimilarity);
+                                    if (lengthSimilarity < effectiveSimilarityThreshold * 0.8) {
+                                        // Skip this comparison if length similarity is too low
+                                        return;
+                                    }
+                                    
+                                    // Check for minimum common content length in length mode
+                                    // In length priority mode, be even stricter about the minimum common substring
+                                    if (commonSubstringLength < requiredMinCommonLength * 1.2) {
+                                        // Skip this comparison if common substring is too short for length mode
+                                        return;
+                                    }
+                                }
+                                
+                                // Skip if comparing a class method with its parent class
+                                // Check if the method is inside the class body
+                                if ((element.type === 'class-method' && otherElement.type === 'class') || 
+                                    (element.type === 'class' && otherElement.type === 'class-method')) {
+                                    
+                                    // Get the class and method elements
+                                    const classElement = element.type === 'class' ? element : otherElement;
+                                    const methodElement = element.type === 'class-method' ? element : otherElement;
+                                    
+                                    // Check if the method is contained in the class body
+                                    if (classElement.body.includes(methodElement.name + '(')) {
+                                        // This is a method compared to its parent class - skip it
+                                        return;
+                                    }
+                                }
+                                
+                                // Create the comparison object
+                                let comparison = {
+                                    source: {
+                                        ...element,
+                                        fileName: element.fileName || file.name // Ensure source fileName is set
+                                    },
+                                    target: {
+                                        ...otherElement,
+                                        fileName: otherElement.fileName || otherFile.name // For cross-file comparisons, use otherFile.name
+                                    },
+                                    sourceFile: element.fileName || file.name, // Add sourceFile property
+                                    targetFile: otherFile.name, // For cross-file comparisons, this is the other file name
+                                    similarity: similarity,
+                                    stats: stats
+                                };
+
+                                // Special handling for constructor and reset/init methods
+                                // These often have similar code but should be considered a refactoring opportunity
+                                if (element.type === 'class-method' && otherElement.type === 'class-method') {
+                                    // Specifically flag constructor vs. reset/init methods with similar code as potential refactoring opportunity
+                                    if ((element.name === 'constructor' && 
+                                         (otherElement.name === 'reset' || otherElement.name === 'init' || otherElement.name === 'initialize')) ||
+                                        (otherElement.name === 'constructor' && 
+                                         (element.name === 'reset' || element.name === 'init' || element.name === 'initialize'))) {
+                                        
+                                        // Add a flag to indicate this is a common pattern that might benefit from refactoring to a shared private method
+                                        comparison.refactoringOpportunity = true;
+                                        comparison.refactoringType = 'constructor-reset-duplication';
+                                    }
+                                }
+                                
+                                // Verify that neither source nor target appears to be a CSS fragment
+                                const isSourceFragment = element.language === 'css' && 
+                                    (element.name.includes(';') || element.body.endsWith(';'));
+                                const isTargetFragment = otherElement.language === 'css' && 
+                                    (otherElement.name.includes(';') || otherElement.body.endsWith(';'));
+                                
+                                // Check if either source or target appears to be a comment
+                                const isSourceComment = isComment(element.name, element.language) || 
+                                                      isComment(element.body, element.language) ||
+                                                      isComment(element.full, element.language);
+                                
+                                const isTargetComment = isComment(otherElement.name, otherElement.language) || 
+                                                      isComment(otherElement.body, otherElement.language) ||
+                                                      isComment(otherElement.full, otherElement.language);
+                                
+                                // Skip fragments in CSS or if either is a comment
+                                if (isSourceFragment || isTargetFragment || isSourceComment || isTargetComment) {
+                                    return;
+                                }
+                                
+                                // Skip common CSS utility patterns that aren't meaningful duplications
+                                if (isCommonCSSUtilityPattern(element, otherElement)) {
+                                    return;
+                                }
+                                
+                                // Add the comparison to file.comparisons
+                                file.comparisons.push(comparison);
+                                
+                                // Update comparison count in fileStats
+                                const fileStatsIndex = fileStats.findIndex(fs => fs.name === file.name);
+                                if (fileStatsIndex !== -1) {
+                                    fileStats[fileStatsIndex].comparisons++;
+                                }
+                            }
+                        });
+                    }
+                });
+            });
+            
+            file.comparisons.sort((a, b) => b.similarity - a.similarity);
+            
+            // Update progress periodically during the comparison phase
+            processedFiles++;
+            const progress = 75 + (processedFiles / totalFilesForComparison) * 20; // Scale to 75-95% range
+            self.postMessage({
+                type: 'progress',
+                data: { 
+                    progress: progress, 
+                    message: "Computing comparisons: " + processedFiles + "/" + totalFilesForComparison + " files processed"
+                }
+            });
+        });
+
+        // Send a final progress update before sending results
+        self.postMessage({
+            type: 'progress',
+            data: { progress: 100, message: 'Analysis complete! Processing results...' }
+        });
+
+        // Add debugging to worker before sending results
+        console.log("Worker finished processing. About to send results:", 
+            filesData.length, "files with", 
+            filesData.reduce((sum, f) => sum + (f.elements ? f.elements.length : 0), 0), "elements and",
+            filesData.reduce((sum, f) => sum + (f.comparisons ? f.comparisons.length : 0), 0), "comparisons"
+        );
+        
+        // Additional logging to check for updateStatsDisplay functions
+        const updateStatsDisplayFunctions = [];
+        for (const file of filesData) {
+            if (file.elements) {
+                for (const element of file.elements) {
+                    if (element.name === 'updateStatsDisplay') {
+                        updateStatsDisplayFunctions.push({
+                            file: element.fileName || file.name,
+                            line: element.lineNumber,
+                            position: element.sourcePosition
+                        });
+                    }
+                }
+            }
+        }
+        console.log("Found updateStatsDisplay functions:", updateStatsDisplayFunctions);
+        
+        // Log comparisons involving updateStatsDisplay
+        let updateStatsDisplayComparisons = 0;
+        for (const file of filesData) {
+            if (file.comparisons) {
+                for (const comp of file.comparisons) {
+                    if (comp.source?.name === 'updateStatsDisplay' || comp.target?.name === 'updateStatsDisplay') {
+                        updateStatsDisplayComparisons++;
+                    }
+                }
+            }
+        }
+        console.log("Found updateStatsDisplay comparisons:", updateStatsDisplayComparisons);
+        
+        // Ensure all files have a comparisons array defined
+        for (let i = 0; i < filesData.length; i++) {
+            if (!filesData[i].comparisons) {
+                filesData[i].comparisons = [];
+            }
+        }
+
+        // Deduplicate bidirectional comparisons
+        // Create a map to track comparisons that have already been processed
+        console.log("Starting deduplication of bidirectional comparisons...");
+        const processedComparisons = new Map();
+        let duplicatesRemoved = 0;
+
+        for (const file of filesData) {
+            // Skip files with no comparisons
+            if (!file.comparisons || file.comparisons.length === 0) continue;
+
+            // Deduplicate comparisons in the same file
+            // This is important to avoid redundant bidirectional comparisons
+            // For example, if A is compared to B, we don't need B compared to A as well
+            file.comparisons = file.comparisons.filter(comp => {
+                // Get identifiers for this comparison
+                const sourceFile = comp.source?.fileName || file.name;
+                const sourceName = comp.source?.name || '';
+                const targetFile = comp.target?.fileName || comp.targetFile || file.name;
+                const targetName = comp.target?.name || '';
+                
+                // Create keys for both directions of this comparison
+                const forwardKey = `${sourceFile}:${sourceName}::${targetFile}:${targetName}`;
+                const reverseKey = `${targetFile}:${targetName}::${sourceFile}:${sourceName}`;
+                
+                // Only deduplicate comparisons within the same file
+                if (sourceFile === targetFile) {
+                    // 1. Directional deduplication (A→B vs B→A) for same file
+                    if (processedComparisons.has(reverseKey)) {
+                        duplicatesRemoved++;
+                        return false;
+                    }
+                    
+                    // 2. Source position based deduplication
+                    if (comp.source?.sourcePosition && comp.target?.sourcePosition) {
+                        // Check if this position-pair has been processed
+                        const positionKey = `${sourceFile}_pos${comp.source.sourcePosition.startIndex}_${comp.target.sourcePosition.startIndex}`;
+                        
+                        if (processedComparisons.has(positionKey)) {
+                            duplicatesRemoved++;
+                            return false;
+                        }
+                        
+                        processedComparisons.set(positionKey, true);
+                    }
+                }
+                
+                // 3. Same file, same line numbers
+                if (comp.source?.lineNumber && comp.target?.lineNumber && 
+                    comp.source.lineNumber === comp.target.lineNumber && 
+                    sourceFile === targetFile) {
+                    
+                    // If we already processed a comparison with identical line numbers in the same file,
+                    // skip this one to avoid redundancy
+                    const lineNumberKey = `${sourceFile}_line${comp.source.lineNumber}`;
+                    
+                    if (processedComparisons.has(lineNumberKey)) {
+                        duplicatesRemoved++;
+                        return false;
+                    }
+                    
+                    // Mark this line number as processed
+                    processedComparisons.set(lineNumberKey, true);
+                }
+                
+                // 4. Identical code content with very high similarity IN SAME FILE
+                if (comp.similarity >= 99.0 && sourceFile === targetFile) {
+                    // Normalize the content for comparison
+                    const sourceContent = (comp.source?.body || "").replace(/\s+/g, ' ').trim();
+                    const targetContent = (comp.target?.body || "").replace(/\s+/g, ' ').trim();
+                    
+                    // If the content is truly identical
+                    if (sourceContent === targetContent && sourceContent.length > 0) {
+                        const contentKey = `content_${sourceFile}_${sourceContent.substring(0, 50)}`;
+                        
+                        if (processedComparisons.has(contentKey)) {
+                            duplicatesRemoved++;
+                            return false;
+                        }
+                        
+                        processedComparisons.set(contentKey, true);
+                    }
+                }
+                
+                // For same-file comparisons, we want to track both directions to avoid duplicates
+                if (sourceFile === targetFile) {
+                    processedComparisons.set(forwardKey, true);
+                    processedComparisons.set(reverseKey, true);
+                }
+                
+                return true;
+            });
+        }
+
+        console.log(`Deduplication complete: removed ${duplicatesRemoved} duplicate bidirectional comparisons (same file only)`);
+
+        // Additional handling to identify and link duplicate function declarations
+        const duplicateFunctionMap = new Map();
+        
+        // First, identify all duplicate functions by name
+        for (const file of filesData) {
+            if (!file.elements) continue;
+            
+            for (const element of file.elements) {
+                if (element.type === 'function' || element.type === 'method') {
+                    const key = element.name;
+                    if (!duplicateFunctionMap.has(key)) {
+                        duplicateFunctionMap.set(key, []);
+                    }
+                    duplicateFunctionMap.get(key).push({
+                        element: element,
+                        file: file.name,
+                        lineNumber: element.lineNumber,
+                        position: element.sourcePosition
+                    });
+                }
+            }
+        }
+        
+        // Create special comparisons for duplicate functions
+        for (const [funcName, instances] of duplicateFunctionMap.entries()) {
+            // Only process if there are multiple instances
+            if (instances.length <= 1) continue;
+            
+            console.log(`Found ${instances.length} instances of function ${funcName}`);
+            
+            // Create comparisons between all pairs of duplicate functions
+            for (let i = 0; i < instances.length; i++) {
+                for (let j = i + 1; j < instances.length; j++) {
+                    const source = instances[i];
+                    const target = instances[j];
+                    
+                    // Skip if they're from different files (these will be handled by normal cross-file comparisons)
+                    if (source.file !== target.file) continue;
+                    
+                    // Calculate similarity
+                    const { similarity, stats } = calculateSimilarity(
+                        source.element.body, 
+                        target.element.body
+                    );
+                    
+                    // Only add if similarity is above threshold
+                    if (similarity > codeSimilarityThreshold) {
+                        // Find the file to add this comparison to
+                        const fileIndex = filesData.findIndex(f => f.name === source.file);
+                        if (fileIndex === -1) continue;
+                        
+                        // Create the comparison
+                        const comparison = {
+                            source: {
+                                ...source.element,
+                                fileName: source.file,
+                                lineNumber: source.lineNumber || source.element.lineNumber
+                            },
+                            target: {
+                                ...target.element,
+                                fileName: target.file,
+                                lineNumber: target.lineNumber || target.element.lineNumber
+                            },
+                            sourceFile: source.file,
+                            targetFile: target.file,
+                            similarity: similarity,
+                            stats: stats,
+                            isDuplicateFunction: true // Mark as a duplicate function comparison
+                        };
+                        
+                        // Add to file's comparisons
+                        filesData[fileIndex].comparisons.push(comparison);
+                        
+                        // Update stats
+                        const fileStatsIndex = fileStats.findIndex(fs => fs.name === source.file);
+                        if (fileStatsIndex !== -1) {
+                            fileStats[fileStatsIndex].comparisons++;
+                        }
+                    }
+                }
+            }
+        }
+        
+        console.log("Added special comparisons for duplicate functions");
+
+        self.postMessage({
+            type: 'result',
+            data: { filesData }
+        });
+    } catch (error) {
+        self.postMessage({
+            type: 'error',
+            data: { message: error.message }
+        });
+    }
+};
+    </script>
+    
+    <!-- Include the scripts.js file -->
+    <script src="scripts.js"></script>
+
+    <script>
+    // Setup the worker when the page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        // Fix the worker script type to ensure proper extraction
+        const workerScriptElement = document.getElementById('worker-script');
+        if (workerScriptElement) {
+            // Normalize line breaks and whitespace in the worker script
+            const scriptContent = workerScriptElement.textContent
+                .replace(/^\s+/, '')  // Remove leading whitespace
+                .replace(/\r\n/g, '\n')  // Normalize line endings
+                .trim();  // Remove trailing whitespace
+            
+            // Store the cleaned script content as a data attribute for later use
+            workerScriptElement.setAttribute('data-script-content', scriptContent);
+            
+            // Create a fallback worker.js file if needed
+            try {
+                // Create the worker script file dynamically
+                const blob = new Blob([scriptContent], { type: 'application/javascript' });
+                const workerUrl = URL.createObjectURL(blob);
+                
+                // Store the URL for the createWorker function to use
+                window.dynamicWorkerUrl = workerUrl;
+                console.log("Created dynamic worker URL");
+            } catch (error) {
+                console.error("Failed to create dynamic worker URL:", error);
+            }
+        }
+        
+        // Note: Slider event listeners are now set up in scripts.js initialization
+    });
+    </script>
+</body>
+</html>
